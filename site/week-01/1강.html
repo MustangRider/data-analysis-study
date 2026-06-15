@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1강 — 왜 리뷰를 분석하는가 &amp; AI 앱 개발자란</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-01 · 1강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="1-ai">1강 — 왜 리뷰를 분석하는가 &amp; AI 앱 개발자란</h1>
+<blockquote>
+<p>1강 (18분 39초) · 강의에 없던 보강 설명은 "(보강)"으로 표시합니다.</p>
+</blockquote>
+<h2 id="_1">🎯 이 강의로 답할 질문</h2>
+<ul>
+<li>리뷰를 사람이 직접 읽지 않고 <strong>AI로 분석해야 하는 이유</strong>는 무엇일까요?</li>
+<li>우리가 되려는 <strong>"AI 앱 개발자"</strong>는 어떤 사람일까요? (AI 모델 개발자와 뭐가 다를까요?)</li>
+<li>6일 동안 결국 <strong>무엇을 만들게 될까요?</strong></li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<h3 id="1-10">1. 출발점 — 리뷰 10만 개를 어떻게 보시겠어요?</h3>
+<p>여러분이 게임 회사의 담당자라고 해봅시다. 우리 게임에 리뷰가 10만 개 쌓였어요. 유저가 뭘 좋아하고 싫어하는지 전부 그 안에 들어 있습니다. 그런데 이걸 어떻게 보시겠어요?
+- <strong>팀원들과 나눠 읽는다?</strong> — 시간이 감당이 안 됩니다.
+- <strong>별점만 본다?</strong> — 왜 그런 별점이 나왔는지 이유를 알 수 없어요.
+- <strong>최신 것만 본다?</strong> — 트렌드도, 그 게임의 특장점도 놓치게 됩니다.</p>
+<p>데이터(리뷰)는 분명히 있는데, 사람의 방식으로는 의미를 못 뽑는 상황이죠. 바로 여기서 AI 분석이 등장합니다.</p>
+<h3 id="2">2. 두 개의 실제 사례</h3>
+<p>실제로 이런 일이 있었습니다.</p>
+<p><strong>성공한 경우.</strong> 한 게임 회사가 대규모 업데이트(새 콘텐츠 + 밸런스 조정)를 했는데, 별점이 하루 만에 4.5에서 3.2로 폭락했어요. 리뷰는 하루 수천 개씩 쏟아지고, 팀원들이 밤새 읽었지만 사람마다 읽은 리뷰가 달라서 결론이 제각각이었습니다(밸런스다 / 버그다 / UI다). 그래서 AI로 2천 개 리뷰를 전부 긍·부정으로 분류하고, 부정 리뷰의 키워드 빈도를 분석했더니 <strong>30분 만에</strong> 1위 키워드 "매칭"이 나왔어요. 새 매칭 시스템이 기존 유저에게 너무 불리하게 바뀐 게 원인이었죠.</p>
+<p><strong>실패한 경우.</strong> AI를 쓰기 전에는 인턴 세 명이 한 달 동안 리뷰를 분류했습니다. 그런데 기준이 제각각이었어요. 같은 리뷰를 한 명은 중립, 한 명은 부정, 또 한 명은 아예 다른 키워드 체계로 분류했죠. 결국 한 달치 데이터를 통째로 못 쓰게 됐습니다. 여기서 꼭 기억하세요. <strong>사람이 대량의 데이터를 일관되게 분류하는 건 구조적으로 불가능합니다.</strong> 의지나 능력의 문제가 아니라, 사람이라면 누구나 부딪히는 한계예요.</p>
+<h3 id="3-3-ai">3. 사람의 한계 3가지, 그리고 AI</h3>
+<p>사람이 리뷰를 직접 읽을 때는 세 가지 벽에 부딪힙니다.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>사람</th>
+<th>AI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>속도</strong></td>
+<td>리뷰 1건 판단에 30초~1분. 하루 100~200개가 한계</td>
+<td>1만 개도 몇 분~몇십 분. 잠도 휴일도 필요 없음</td>
+</tr>
+<tr>
+<td><strong>일관성</strong></td>
+<td>아침/저녁, 사람마다 기준이 흔들림</td>
+<td>1번째든 10만 번째든 똑같은 기준</td>
+</tr>
+<tr>
+<td><strong>비용</strong></td>
+<td>인건비·전문업체 비용</td>
+<td>압도적으로 저렴 (단, 공짜는 아님 ↓)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ AI도 공짜는 아닙니다. GPT·Claude 같은 LLM을 우리 서비스에 붙일 때는 <strong>API</strong>라는 방식을 쓰는데 보통 유료예요(리뷰 1건당 몇 원 수준). 이 과정 뒤쪽에서 <em>무료로 우수한 LLM을 쓰는 팁</em>도 알려드릴게요.</p>
+</blockquote>
+<h3 id="4-ai">4. 가장 중요한 원칙 — AI는 분류, 사람은 해석</h3>
+<p>방금 성공 사례에서 AI가 한 일은 "부정 1위 키워드는 매칭"을 찾아낸 것까지입니다. <strong>"그래서 매칭 시스템을 어떻게 되돌릴까"를 결정한 건 사람</strong>이었어요.</p>
+<blockquote>
+<p>AI는 <em>무엇을 봐야 하는지</em>를 찾아줍니다. 그걸 <em>해석하고 결정하는 건 여러분의 몫</em>이고요. 이게 AI 시대의 협업 방식입니다.</p>
+</blockquote>
+<h3 id="5-6">5. 그래서 6일 동안 뭘 만들까요?</h3>
+<p>우리가 만들 최종 결과물은 <strong>게임 리뷰 분석 대시보드</strong>입니다. 네 가지 기능으로 이뤄져요.
+1. <strong>감성 분석</strong> — 리뷰를 긍정/부정/중립으로 자동 분류합니다. <em>왜</em> 부정인지(버그 때문인지, 콘텐츠 부족 때문인지) 근거까지 봅니다.
+2. <strong>키워드 추출</strong> — 수천 개에서 자주 나오는 걸 자동으로 뽑아요. 단순 빈도가 아니라 맥락을 이해해서, "재미없음"과 "재미가 없어요"를 같은 의미로 묶습니다.
+3. <strong>트렌드 분석</strong> — 시간에 따른 변화를 봅니다(지난달 그래픽 칭찬 → 이번 달 버그 불만 급증).
+4. <strong>대시보드</strong> — 위 결과를 그래프·차트·워드클라우드로 시각화해서, 비개발자 동료나 경영진도 바로 이해하게 만듭니다.</p>
+<p><strong>6일 흐름</strong>은 이렇습니다 — 1~2일 데이터 수집·정리 → 3~4일 LLM으로 텍스트 분석 → 5~6일 대시보드 제작.</p>
+<h3 id="6-ai">6. "AI 앱 개발자"는 엔진이 아니라 자동차를 조립하는 사람입니다</h3>
+<p>비유를 하나 들어볼게요.
+- <strong>AI 모델 개발자</strong>는 자동차 <em>엔진</em>을 직접 설계하는 사람입니다. 석·박사급에, 딥러닝 이론·수학·논문 역량이 필요하고, 수도 적어요.
+- 우리가 될 <strong>AI 앱 개발자</strong>는 이미 공개된 강력한 엔진(GPT·Claude·Gemini·Grok)을 <strong>API로 가져다 원하는 자동차를 조립</strong>하는 사람입니다. 엔진을 직접 만들 필요가 없어요.</p>
+<p>예전에는 감성 분석 모델을 직접 학습시키고, 알고리즘을 짜고, 서버를 세우는 데 몇 년이 걸렸습니다. 지금은 <strong>LLM API 하나로</strong> 감성분석·키워드추출·요약이 다 됩니다. 그래서 우리가 배울 건 ① API를 쓰는 법(금방 익혀요)과 ② <strong>어떻게 물어볼지, 즉 프롬프트를 설계하는 법</strong>입니다. 좋은 질문이 좋은 답을 끌어내거든요.</p>
+<h3 id="7">7. 왜 지금 이 역할이 주목받을까요?</h3>
+<ol>
+<li><strong>LLM의 등장</strong> — 예전엔 작업마다(감성분석·요약·번역) 다른 모델이 필요했어요. 이제는 LLM 하나로, 프롬프트만 바꾸면 다 됩니다.</li>
+<li><strong>민주화</strong> — 예전엔 빅테크 안에서만 가능했던 걸, 이제 인터넷만 되면 누구나 API 키 발급 + 코드 몇 줄로 씁니다.</li>
+<li><strong>기업의 다급함</strong> — 모두가 "AI로 뭔가 해야 한다"는 압박을 받아요. 그런데 모델 개발자는 드물고 비싸니, <strong>있는 AI를 잘 활용해 서비스를 만들 사람</strong>의 수요가 큽니다.</li>
+<li><strong>기술 장벽 붕괴</strong> — 전공이냐 비전공이냐, AI 지식이 있느냐는 더 이상 중요하지 않아요. 파이썬 기초 + API 호출 + 프롬프트면 충분합니다.</li>
+</ol>
+<h3 id="8">8. 이 과정에서 기대하셔도 좋은 것</h3>
+<ol>
+<li><strong>동작하는 서비스</strong> — 이론만 배우고 끝나는 게 아니라, 리뷰를 넣으면 진짜 분석되는 걸 여러분 손으로 만듭니다.</li>
+<li><strong>포트폴리오</strong> — "AI 기반 리뷰 분석 대시보드"라는 그럴듯한 결과물이 생겨요. 면접에서 직접 설명할 수 있습니다.</li>
+<li><strong>실무 감각</strong> — 튜토리얼은 항상 성공하지만, 실무에선 에러·예상 밖 결과·비용 문제가 터집니다. 그걸 회피하지 않고 직접 겪어볼 거예요.</li>
+<li><strong>현장 노하우</strong> — 재시도 로직, 대량 데이터 배치 처리, 결과 캐싱(이전 결과 재활용)처럼 책엔 없지만 현장에 꼭 필요한 것들을 다룹니다.</li>
+</ol>
+<h3 id="9-4">9. 꼭 기억할 4대 원칙</h3>
+<ol>
+<li><strong>작성은 AI가, 해석은 여러분이.</strong> 파이썬 문법을 달달 외울 필요는 없지만, 코드 흐름을 읽고 <em>AI가 엉뚱한 짓을 하는지 검증</em>할 수는 있어야 해요. 여러분은 코더가 아니라 <strong>코드의 품질을 판단하는 리뷰어</strong>입니다.</li>
+<li><strong>구현보다 설계.</strong> 복잡한 알고리즘은 AI가 순식간에 만들어줍니다. 중요한 건 <em>어떤 기능을 어떤 순서로</em> 짤지 설계하는 논리력과 창의성이에요. AI는 벽돌을 쌓는 인부이고, 설계도를 그리는 <strong>건축가는 여러분</strong>입니다.</li>
+<li><strong>에러 해결의 주도권은 여러분이.</strong> 무작정 "고쳐줘"만 하지 말고, 에러 메시지를 읽고 <em>어디가 왜 틀렸는지</em> 보는 눈을 기르세요. 고친 이유를 이해해야 진짜 내 것이 됩니다.</li>
+<li><strong>AI는 기술, 여러분은 도메인.</strong> 코딩은 AI에 맡기고, 아낀 시간을 <em>이 기능이 왜 비즈니스적으로 가치 있는지</em> 고민하는 데 쓰세요. 도메인 지식과 비즈니스 통찰은 AI가 대체할 수 없습니다.</li>
+</ol>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LLM (대형 언어 모델)</td>
+<td>GPT·Claude·Gemini 등. 프롬프트만 바꾸면 분석·요약·번역이 다 되는 만능 AI 엔진</td>
+</tr>
+<tr>
+<td>API</td>
+<td>내 코드에서 그 LLM 엔진을 불러다 쓰는 통로 (자세한 건 4강)</td>
+</tr>
+<tr>
+<td>프롬프트</td>
+<td>AI에게 시키는 "질문/지시". 잘 짜야 좋은 답이 나옴</td>
+</tr>
+<tr>
+<td>감성 분석</td>
+<td>텍스트를 긍정/부정/중립으로 분류하는 것</td>
+</tr>
+<tr>
+<td>AI 앱 개발자</td>
+<td>모델을 만드는 게 아니라, 있는 AI를 조립해 서비스를 만드는 사람</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>사실 이 강의 전체가 <strong>기획자가 일하는 방식</strong>에 관한 이야기입니다. 리뷰 분석은 <em>기획 의사결정의 근거</em>를 모으는 도구예요. AI가 "부정 1위는 매칭"이라고 좁혀주면, <strong>밸런스를 되돌릴지·BM을 손볼지·콘텐츠 우선순위를 어디에 둘지 결정하는 건 기획자</strong>입니다. 4대 원칙 중 "AI는 기술, 여러분은 도메인"이야말로 게임 기획자가 이 분야에서 가장 강한 지점이에요 — 게임을 아는 사람이 AI를 부리는 겁니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>"AI가 답을 준다"가 아닙니다.</strong> AI는 <em>무엇을 볼지</em>를 찾아줄 뿐, 결정은 사람이 합니다.</li>
+<li><strong>"코딩을 다 배워야 한다"도 아니에요.</strong> 흐름을 읽고 검증할 정도면 되고, 핵심은 <em>무엇을 만들지 설계</em>하는 능력입니다.</li>
+<li>(용어) 대표적인 LLM은 GPT·Claude·Gemini·Grok입니다. 발음이 헷갈리기 쉬운데 각각 <strong>클로드·제미나이·그록</strong>으로 읽어요.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li>사람은 리뷰를 <strong>속도·일관성·비용</strong> 때문에 대량으로 분석할 수 없습니다 → AI가 분류하고 <strong>사람이 해석·결정</strong>합니다.</li>
+<li>우리는 엔진(모델)을 만드는 게 아니라 <strong>있는 AI를 조립하는 "AI 앱 개발자"</strong>가 됩니다. 무기는 파이썬 기초 + API + <strong>프롬프트 + 도메인 감각</strong>이에요.</li>
+<li>6일 뒤 결과물은 <strong>게임 리뷰 분석 대시보드</strong>(감성분석·키워드·트렌드·시각화)입니다.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>그런데 AI는 글자를 못 읽습니다(컴퓨터는 숫자만 알아요). 그럼 "좋아요"와 "최고예요"가 비슷한 뜻인 걸 어떻게 알까요? → <strong>2강: AI는 텍스트를 어떻게 이해하는가 (임베딩)</strong>.</p>
+</article>
+<div class="pager"><span class="spacer"></span><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><a class="next" href="2강.html"><span class="lbl">다음 →</span><span class="ttl">2강 — AI는 텍스트를 어떻게 이해하는가 (임베딩)</span></a></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6강 — 실습: Steam 리뷰 수집 + 파이썬 기초</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-01 · 6강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="6-steam">6강 — 실습: Steam 리뷰 수집 + 파이썬 기초</h1>
+<blockquote>
+<p>6강 (39분 46초) · 강의에 없던 보강 설명은 "(보강)"으로 표시합니다.</p>
+</blockquote>
+<h2 id="_1">🎯 이 강의로 답할 질문</h2>
+<ul>
+<li><strong>Steam 리뷰를 실제로 수집해 파일(CSV)로 저장</strong>하는 전체 흐름은 어떻게 될까요?</li>
+<li>코드를 읽기 위한 <strong>파이썬 기초</strong>(변수·리스트·딕셔너리·반복문)는 무엇일까요?</li>
+<li>에러가 나면 어떻게 대응할까요?</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<h3 id="1">1. 오늘의 목표 &amp; 흐름</h3>
+<p>이 강이 끝나면 여러분은 <strong>Steam에서 리뷰를 수집해 CSV 파일로 저장</strong>할 수 있게 됩니다. 6단계로 가요.
+<strong>복습 → 설치 → 게임 ID 찾기 → 수집 → 확인 → 저장(CSV).</strong></p>
+<blockquote>
+<p>코드의 <em>문법</em>에 매달리지 말고 <strong>"어떤 일을, 어떤 순서로 하는가"</strong>에 집중하세요.</p>
+</blockquote>
+<p>이번 수집은 안전할까요? <strong>네, 안전합니다.</strong> Steam <strong>공식 API</strong>를 쓰고, <strong>steamreviews</strong>가 rate limit을 알아서 지켜주거든요(5강 체크리스트의 공식 API·속도제한·비상업을 모두 충족해요).</p>
+<h3 id="2">2. 수집 실습 흐름 (직접 실행)</h3>
+<p>아래 코드를 <strong>Colab 셀에 차례로</strong> 붙여넣으면 됩니다. (실행용 노트북: <code>notebooks/6강_실습.ipynb</code>)</p>
+<p><strong>① 라이브러리 설치</strong></p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="border: 1px solid #F00">!</span>pip install <span style="color: #666">-</span>q steamreviews
+</code></pre></div>
+
+<p><strong>② 게임 ID 지정</strong> — Steam 상점 URL <code>/app/숫자/</code>의 숫자(4강 참고). 예: 스타듀밸리 = 413150</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>app_id <span style="color: #666">=</span> <span style="color: #666">413150</span>   <span style="color: #3D7B7B; font-style: italic"># 분석할 게임의 Steam ID</span>
+</code></pre></div>
+
+<p><strong>③ 리뷰 수집</strong> — 한국어 리뷰. 리뷰가 많으면 몇 분 걸린다</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">steamreviews</span>
+
+<span style="color: #3D7B7B; font-style: italic"># 한국어 리뷰만 요청 (영어까지 받으려면 &quot;language&quot;를 &quot;all&quot;로)</span>
+params <span style="color: #666">=</span> {<span style="color: #BA2121">&quot;language&quot;</span>: <span style="color: #BA2121">&quot;korean&quot;</span>}
+review_dict, _ <span style="color: #666">=</span> steamreviews<span style="color: #666">.</span>download_reviews_for_app_id(app_id, chosen_request_params<span style="color: #666">=</span>params)
+
+reviews <span style="color: #666">=</span> review_dict[<span style="color: #BA2121">&quot;reviews&quot;</span>]      <span style="color: #3D7B7B; font-style: italic"># {리뷰ID: 리뷰정보} 형태의 딕셔너리</span>
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;수집된 리뷰 수:&quot;</span>, <span style="color: #008000">len</span>(reviews))
+</code></pre></div>
+
+<p><strong>④ 표(DataFrame)로 변환</strong> — 딕셔너리는 분석이 불편하니 표로</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">pandas</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">as</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">pd</span>
+
+rows <span style="color: #666">=</span> []
+<span style="color: #008000; font-weight: bold">for</span> r <span style="color: #A2F; font-weight: bold">in</span> reviews<span style="color: #666">.</span>values():
+    rows<span style="color: #666">.</span>append({
+        <span style="color: #BA2121">&quot;review&quot;</span>: r[<span style="color: #BA2121">&quot;review&quot;</span>],                                   <span style="color: #3D7B7B; font-style: italic"># 리뷰 텍스트</span>
+        <span style="color: #BA2121">&quot;recommended&quot;</span>: r[<span style="color: #BA2121">&quot;voted_up&quot;</span>],                            <span style="color: #3D7B7B; font-style: italic"># 추천 여부 True/False</span>
+        <span style="color: #BA2121">&quot;playtime_hours&quot;</span>: <span style="color: #008000">round</span>(r[<span style="color: #BA2121">&quot;author&quot;</span>][<span style="color: #BA2121">&quot;playtime_forever&quot;</span>] <span style="color: #666">/</span> <span style="color: #666">60</span>, <span style="color: #666">1</span>),  <span style="color: #3D7B7B; font-style: italic"># 분→시간</span>
+        <span style="color: #BA2121">&quot;timestamp_created&quot;</span>: r[<span style="color: #BA2121">&quot;timestamp_created&quot;</span>],             <span style="color: #3D7B7B; font-style: italic"># 작성 시각</span>
+    })
+
+df <span style="color: #666">=</span> pd<span style="color: #666">.</span>DataFrame(rows)
+<span style="color: #008000">print</span>(df<span style="color: #666">.</span>shape)   <span style="color: #3D7B7B; font-style: italic"># (행 수, 열 수)</span>
+df<span style="color: #666">.</span>head()         <span style="color: #3D7B7B; font-style: italic"># 처음 5개 미리보기</span>
+</code></pre></div>
+
+<p><strong>⑤ CSV로 저장</strong> — 한글이 깨지지 않게 <code>utf-8-sig</code></p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>df<span style="color: #666">.</span>to_csv(<span style="color: #BA2121">&quot;stardew_reviews.csv&quot;</span>, index<span style="color: #666">=</span><span style="color: #008000; font-weight: bold">False</span>, encoding<span style="color: #666">=</span><span style="color: #BA2121">&quot;utf-8-sig&quot;</span>)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;저장 완료 → stardew_reviews.csv&quot;</span>)
+</code></pre></div>
+
+<blockquote>
+<p>⚠️ <strong>Colab은 세션이 끊기면(시간 경과·브라우저 닫음) 파일이 사라집니다.</strong> 만든 CSV는 꼭 <strong>다운로드</strong>해 두세요. 작업 중간중간 저장하는 습관이 실무에서도 중요해요.
+⚠️ 글로벌 인기작이 아니면 <strong>한국어 리뷰가 적을 수 있어요</strong> → 영어 리뷰 병행을 고려하세요.</p>
+</blockquote>
+<h3 id="3">3. 파이썬 기초 — 코드를 "읽기" 위한 최소한</h3>
+<p>완벽히 외울 필요는 없어요. 흐름을 읽고 검증할 수 있을 정도면 충분합니다.</p>
+<ul>
+<li><strong>변수</strong> = 이름표 붙인 상자예요. <code>app_id = "413150"</code> → <code>app_id</code> 상자에 값을 넣는 거죠. <strong>따옴표</strong>로 감싸면 <strong>문자열(텍스트)</strong>, 따옴표를 빼면 숫자(정수)입니다. 타입은 문자열 / 정수 / 실수(소수점) / <strong>불리언</strong>(True·False)이 있어요.</li>
+<li><strong>주석</strong> = <code>#</code> 뒤 내용이에요. 실행에 영향 없는 <em>설명</em>이라, 기억할 내용을 적어둘 때 씁니다.</li>
+<li><strong>리스트</strong> = <code>[ ]</code>, 여러 값을 <strong>순서대로</strong> 담아요. 인덱스(번호)로 꺼내며 <strong>0부터 시작</strong>합니다(첫 번째=0번). <code>.append("값")</code>으로 추가하고요.</li>
+<li><strong>딕셔너리</strong> = <code>{ }</code>, <strong>키:값</strong> 쌍으로 담아요(서랍장에서 키로 알맹이를 꺼내듯이). <strong>JSON과 같은 구조</strong>라, 딕셔너리 안에 딕셔너리(중첩)도 가능합니다.</li>
+<li><strong>반복문(for)</strong> = 자동 컨베이어 벨트예요. 리스트·딕셔너리 항목을 하나씩 처리합니다. <strong>들여쓰기</strong>로 "이건 for의 하위"임을 표현하고요.</li>
+<li><strong>함수 / 라이브러리</strong> — 내장 함수로 <code>len</code>(길이/개수), <code>sum</code>(합계), <code>max</code>(최댓값)가 있고, 라이브러리는 <code>import</code>로 가져와 씁니다(예: <code>steamreviews</code>의 <code>download_reviews_for_app_id()</code>를 한 줄로 호출하죠).</li>
+</ul>
+<p>직접 쳐 보며 감을 잡아 보세요 (한 셀로 실행).</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 리스트 — 순서가 있고, 0번부터 꺼낸다</span>
+games <span style="color: #666">=</span> [<span style="color: #BA2121">&quot;스타듀밸리&quot;</span>, <span style="color: #BA2121">&quot;어몽어스&quot;</span>, <span style="color: #BA2121">&quot;사이버펑크&quot;</span>]
+<span style="color: #008000">print</span>(games[<span style="color: #666">0</span>])              <span style="color: #3D7B7B; font-style: italic"># 스타듀밸리 (0번째)</span>
+games<span style="color: #666">.</span>append(<span style="color: #BA2121">&quot;발더스 게이트 3&quot;</span>)  <span style="color: #3D7B7B; font-style: italic"># 끝에 추가</span>
+
+<span style="color: #3D7B7B; font-style: italic"># 딕셔너리 — 키로 값을 꺼낸다 (JSON과 같은 구조)</span>
+review <span style="color: #666">=</span> {<span style="color: #BA2121">&quot;text&quot;</span>: <span style="color: #BA2121">&quot;재밌어요&quot;</span>, <span style="color: #BA2121">&quot;recommended&quot;</span>: <span style="color: #008000; font-weight: bold">True</span>}
+<span style="color: #008000">print</span>(review[<span style="color: #BA2121">&quot;text&quot;</span>])        <span style="color: #3D7B7B; font-style: italic"># 재밌어요</span>
+
+<span style="color: #3D7B7B; font-style: italic"># 반복문 — 리스트 항목을 하나씩 (들여쓴 줄이 for의 몸통)</span>
+<span style="color: #008000; font-weight: bold">for</span> g <span style="color: #A2F; font-weight: bold">in</span> games:
+    <span style="color: #008000">print</span>(g)
+
+<span style="color: #3D7B7B; font-style: italic"># 내장 함수</span>
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;리스트 개수:&quot;</span>, <span style="color: #008000">len</span>(games))
+</code></pre></div>
+
+<h3 id="4-steamreviews-4">4. steamreviews 내부는 사실 4강 그대로예요</h3>
+<p>"라이브러리 안이 깜깜이라 막막하다"고 느끼시면, 내부 구조를 떠올려 보세요(다 알 필요는 없어요).
+1. Steam 서버에 <strong>API URL로 "리뷰 주세요" 요청</strong>을 보내고 →
+2. 서버가 <strong>JSON으로 응답</strong>하면 →
+3. 그 JSON을 파이썬 <strong>딕셔너리로 변환</strong>하고 →
+4. 더 받을 게 있으면 <strong>반복문(for/while)으로 페이지를 반복</strong>한 뒤 →
+5. 전체 결과를 반환합니다.
+→ 4강에서 배운 API 호출 + 6강의 딕셔너리·반복문이 그대로 들어 있는 거예요.</p>
+<h3 id="5-ai">5. "백지에서" AI로 만들기 + 에러 대응</h3>
+<p>코드를 외우려 하지 말고, <strong>무엇을 할지를 말로 풀어 보세요.</strong>
+- Colab AI에게 이렇게 부탁합니다 — <em>"steamreviews로 게임 리뷰를 수집하고, 바로 pandas DataFrame으로 표시해줘."</em> 그러면 코드가 생성·실행됩니다.
+- <strong>에러가 나면</strong>(라이브러리 버전이 바뀌면 자주 생겨요) 이렇게 하세요.
+  1. <strong>에러 메시지부터 읽으세요</strong> — 보통 "몇 번째 줄"인지 알려줍니다.
+  2. 그 줄을 <strong>눈으로 확인</strong>하세요(오타·구조 문제).
+  3. 안 되면 메시지를 <strong>ChatGPT 같은 AI에 붙여넣어</strong> 수정을 요청하거나, Colab AI에 "수정해줘"라고 하세요.
+  - 단, <strong>고친 이유를 이해</strong>하고 넘어가야 진짜 내 실력이 됩니다(1강 4대 원칙 기억하시죠).</p>
+<blockquote>
+<p>마지막으로 하나 당부할게요. 이른바 <strong>"바이브 코딩"</strong>(AI에 다 맡기는 식)은 편하지만 <em>반쪽짜리</em>가 되기 쉬워요. ① 무엇을 만들지 설계가 1순위이고 → ② 그다음 문법도 <strong>꾸준히 눈에 익혀야</strong> 더 복잡한 개발을 해낼 수 있습니다.</p>
+</blockquote>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>변수</td>
+<td>값을 담는, 이름표 붙인 상자</td>
+</tr>
+<tr>
+<td>문자열</td>
+<td>따옴표로 감싼 텍스트 값</td>
+</tr>
+<tr>
+<td>리스트 <code>[ ]</code></td>
+<td>순서 있는 값 묶음(인덱스 0부터)</td>
+</tr>
+<tr>
+<td>딕셔너리 <code>{ }</code></td>
+<td>키:값 쌍 묶음(JSON과 같은 구조)</td>
+</tr>
+<tr>
+<td>for문</td>
+<td>항목을 하나씩 반복 처리(들여쓰기로 몸통 표시)</td>
+</tr>
+<tr>
+<td>DataFrame</td>
+<td>pandas의 엑셀 같은 표</td>
+</tr>
+<tr>
+<td>CSV / utf-8-sig</td>
+<td>표 데이터 저장 형식 / 한글 안 깨지는 인코딩</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>이번 과제에서 가장 기획자다운 결정은 <strong>"어떤 게임을 분석할까"</strong>입니다. "그냥 유명해서"가 아니라 <em>분석할 가치가 있는 게임</em>(예: 출시 후 평가가 급변한 게임, 라이브 운영으로 반등한 게임)을 고르고 <strong>선정 이유</strong>를 적으면, 같은 코드라도 포트폴리오의 <strong>이야기</strong>가 훨씬 강해져요. 코드는 AI가 짜주지만, <em>무엇을 왜 분석하는가</em>는 기획자만 정할 수 있습니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>인덱스는 0부터</strong> 시작해요(첫 번째 = <code>[0]</code>).</li>
+<li><strong>CSV는 반드시 <code>utf-8-sig</code>로</strong> 저장하세요(그냥 저장하면 엑셀에서 한글이 깨집니다).</li>
+<li><strong>Colab 파일은 휘발성</strong>이에요 — 세션이 끊기면 사라지니 CSV 다운로드는 필수입니다.</li>
+<li>(용어) 리뷰를 가져오는 라이브러리는 <strong>steamreviews</strong>, 추가용 메서드는 <strong>append</strong>, 텍스트를 감싸는 건 <strong>따옴표</strong>입니다.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li>전체 흐름은 <strong>설치 → 게임 ID → 수집(<code>download_reviews_for_app_id</code>) → 딕셔너리 확인 → DataFrame → CSV(<code>utf-8-sig</code>)</strong> 입니다.</li>
+<li>코드를 읽는 데 필요한 기초는 <strong>변수·문자열·리스트·딕셔너리·for문</strong>. 특히 딕셔너리는 JSON과 같은 구조라 API 응답을 다룰 때 핵심이에요.</li>
+<li>에러는 <strong>메시지부터 읽고</strong>, AI로 고치되 <strong>이유를 이해</strong>하세요. 설계가 1순위, 문법은 꾸준히.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>이제 직접 해볼 차례예요 → <strong>과제: 내 게임 리뷰 수집하기</strong>(게임 선정 → 수집 → DataFrame → CSV를 혼자서). 다음 주차는 <strong>데이터 전처리</strong>(결측치·중복·정규화)로 이어집니다. → <code>assignment/README.md</code>를 참고하세요.</p>
+</article>
+<div class="pager"><a class="prev" href="5강.html"><span class="lbl">← 이전</span><span class="ttl">5강 — 데이터 수집의 경계 (can ≠ may)</span></a><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><span class="spacer"></span></div>
+</div>
+</body>
+</html>

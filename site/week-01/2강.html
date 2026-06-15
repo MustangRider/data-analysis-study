@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2강 — AI는 텍스트를 어떻게 이해하는가 (임베딩)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-01 · 2강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="2-ai">2강 — AI는 텍스트를 어떻게 이해하는가 (임베딩)</h1>
+<blockquote>
+<p>2강 (27분 51초) · 강의에 없던 보강 설명은 "(보강)"으로 표시합니다. 수학 공식은 없으니 안심하세요.</p>
+</blockquote>
+<h2 id="_1">🎯 이 강의로 답할 질문</h2>
+<ul>
+<li>글자가 완전히 다른 <strong>"좋아요"와 "최고예요"를 AI는 어떻게 "비슷하다"고 알까요?</strong></li>
+<li>임베딩·유사도·차원은 각각 무슨 뜻일까요?</li>
+<li>이걸 알면 AI가 <strong>이상한 결과를 낼 때 왜 그런지</strong> 어떻게 추론할 수 있을까요?</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<h3 id="1">1. 오늘의 핵심 질문</h3>
+<p>"좋아요"와 "최고예요"는 <strong>공통 글자가 하나도 없는데</strong> 뜻은 비슷하죠. AI는 이걸 어떻게 알까요? 세 가지로 생각해 봅시다.
+- <strong>사전을 찾아본다?</strong> — 안 됩니다. 사전엔 "좋다"의 정의는 있어도 "최고와 비슷하다"는 안 적혀 있어요. 신조어·줄임말(갓겜·레전드·존잼)은 사전에 아예 없고요.
+- <strong>규칙을 만들어 둔다?</strong> ("좋아요=긍정, 굿=긍정…") — 이것도 안 됩니다. 사람이 긍정을 표현하는 방법은 수천·수만 가지인 데다 오타·줄임말·이모티콘까지 있어요. 규칙으로는 다 못 덮습니다.
+- <strong>완전히 다른 방법이 있다.</strong> — 네, 맞아요. 이게 오늘의 핵심입니다.</p>
+<h3 id="2-ai_1">2. AI는 단어를 "숫자 좌표"로 바꿉니다 — 임베딩</h3>
+<p>컴퓨터는 글자를 모릅니다. <strong>숫자만</strong> 알아요. 그래서 단어를 <strong>숫자 좌표로 바꿉니다.</strong>
+- <strong>지도를 떠올려 보세요.</strong> "서울이 어디야?"를 말로 설명하면 장황하지만, 좌표로 말하면 <em>위도 37.5, 경도 127</em> 끝이죠. 숫자 두 개로 위치가 정확히 정해집니다.
+- AI도 똑같이 "게임"이라는 단어를 <code>0.8, 0.3, 0.5 …</code> 같은 숫자들로 바꿉니다. 이렇게 단어를 숫자 좌표로 바꾸는 걸 <strong>임베딩(embedding)</strong> 이라고 해요. (embed = 끼워 넣다 → 단어를 숫자 공간에 끼워 넣는 거죠.)
+- 숫자로 보면 감이 와요. 예컨대 (간단히 3개로 줄여서) <strong>게임 <code>(0.82, 0.31, 0.50)</code></strong>과 <strong>플레이 <code>(0.79, 0.38, …)</code></strong>는 숫자 패턴이 비슷해서 가깝고, <strong>사과 <code>(0.11, 0.89, …)</code></strong>는 패턴이 확 달라서 멀어요. 비슷한 맥락에 쓰이는 단어는 비슷한 숫자가 되는 겁니다.</p>
+<blockquote>
+<p>핵심은 이게 전부입니다: <strong>AI는 단어를 인식할 때 숫자로 바꿔서 인식한다.</strong>
+그리고 이 숫자는 사람이 정해주는 게 아니라, <strong>AI가 수억 개의 문장을 학습하면서 스스로</strong> 정합니다. 그래서 같이 자주 등장하는 단어(게임 ↔ 플레이)는 자연스럽게 가까운 숫자가 돼요.</p>
+</blockquote>
+<h3 id="3">3. 거리를 잽니다 — 유사도 (코사인 유사도)</h3>
+<p>숫자 좌표로 바꿨으면 이제 <strong>거리를 잴 수 있습니다.</strong> 가까우면 비슷하고, 멀면 다른 거예요. 대표적인 방법이 <strong>코사인 유사도</strong>인데, 두 좌표가 <em>얼마나 같은 방향을 보는지</em>를 잽니다. (삼각함수의 cos를 쓰지만, 공식을 직접 다룰 일은 없어요.)</p>
+<p><strong>서울역에서 출발한다고 해볼게요.</strong>
+- 둘 다 북쪽으로 가면 → 같은 방향 → <strong>유사도 1</strong> (매우 비슷)
+- 한 명은 북쪽, 한 명은 동쪽 → <strong>0.5쯤</strong> (좀 다름)
+- 한 명은 북쪽, 한 명은 남쪽 → <strong>음수</strong> (정반대)</p>
+<p>정리하면 — <strong>1에 가까우면 매우 비슷 / 0에 가까우면 무관 / 음수면 반대</strong>입니다.</p>
+<p>실제로 이런 식이에요(예시 값).</p>
+<table>
+<thead>
+<tr>
+<th>두 단어</th>
+<th>유사도</th>
+<th>판단</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>좋아요 ↔ 최고예요</td>
+<td>0.92</td>
+<td>둘 다 긍정 → 같이 분류</td>
+</tr>
+<tr>
+<td>좋아요 ↔ 화나요</td>
+<td>낮음</td>
+<td>둘 다 감정이지만 긍/부정이 다름</td>
+</tr>
+<tr>
+<td>좋아요 ↔ 별로예요</td>
+<td>음수</td>
+<td>긍정 vs 부정, 반대 방향</td>
+</tr>
+</tbody>
+</table>
+<p><strong>직접 예측해 볼까요?</strong> 단어쌍의 유사도를 먼저 어림해 본 뒤 실제 값과 맞춰 보면 감이 잡혀요.</p>
+<table>
+<thead>
+<tr>
+<th>단어쌍</th>
+<th>실제 유사도</th>
+<th>판정</th>
+<th>왜 그럴까요</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>재미있다 ↔ 즐겁다</td>
+<td>0.87</td>
+<td>높음</td>
+<td>둘 다 긍정 감정, 비슷한 맥락</td>
+</tr>
+<tr>
+<td>재미있다 ↔ 지루하다</td>
+<td>0.23</td>
+<td>낮음</td>
+<td>뜻은 반대지만 같은 '재미' 축 위의 단어</td>
+</tr>
+<tr>
+<td>게임 ↔ 플레이</td>
+<td>0.72</td>
+<td>관련 있음</td>
+<td>품사가 달라도 의미적 연결이 강함</td>
+</tr>
+<tr>
+<td>게임 ↔ 음식</td>
+<td>0.15</td>
+<td>관련 없음</td>
+<td>다른 분야지만 약간의 연관은 존재</td>
+</tr>
+</tbody>
+</table>
+<p>특히 <strong>재미있다 ↔ 지루하다(0.23)</strong>가 흥미로워요. 뜻은 정반대인데 유사도가 음수가 아니라 <em>낮은 양수</em>죠? 둘 다 '재미'라는 같은 축을 다루는 단어라서 그렇습니다(이건 아래 '흔한 오해'에서 더 짚을게요).</p>
+<blockquote>
+<p>이 원리가 리뷰 분석에 그대로 쓰입니다. "이 게임 진짜 재밌어요"라는 리뷰가 들어오면, AI는 이 문장의 임베딩을 만들고 → "긍정" 개념의 임베딩과 "부정" 개념의 임베딩 중 어느 쪽에 더 가까운지 거리를 재서 분류해요. 수천·수만 개도 똑같은 원리로 처리합니다.</p>
+</blockquote>
+<h3 id="4">4. 왜 숫자가 수백 개나 필요할까요? — 차원</h3>
+<p>앞 예시는 설명을 위해 숫자 5개로 줄인 거고, 실제 모델은 <strong>768개, 1536개</strong>씩 씁니다. 이 <strong>숫자의 개수가 "차원"</strong>이에요. 왜 이렇게 많이 쓸까요?
+- 지도의 숫자 2개(위도·경도)는 <em>위치</em>만 표현합니다. "서울은 인구가 많다, 집값이 비싸다, 역사가 깊다" 같은 정보는 못 담죠.
+- 단어도 마찬가지예요. "게임"이라는 단어 하나에 <em>긍정/부정, 혼자/같이, 온라인/오프라인, 경쟁/협력, 아동용/성인용…</em> 수많은 특성이 동시에 담깁니다. <strong>숫자 하나가 특성 하나</strong>를 맡는 셈이라 많이 필요해요.
+- 차원을 늘릴수록 담는 정보가 늘어요. 2차원이면 위치만, 3차원이면 높이(산이냐 바다냐)까지 표현하듯, <strong>차원이 커질수록 더 풍부한 특성</strong>을 담습니다. 768·1536차원이면 단어의 수백 가지 특성을 한꺼번에 표현하는 셈이에요.
+- 그래서 "좋아요 ↔ 최고예요"가 768개 숫자 중 대부분이 비슷하다면, 둘 다 긍정이고, 둘 다 감정 표현이고, 둘 다 비격식이고, 둘 다 칭찬에 쓰인다는 걸 <strong>세밀하게</strong> 비슷하다고 보는 겁니다.</p>
+<blockquote>
+<p>어렵게 느껴지면 한 줄로 기억하세요 — <strong>"특성을 풍부하게 담으려고 숫자가 많다."</strong></p>
+</blockquote>
+<h3 id="5-ai">5. 왜 이걸 알아야 할까요? — AI는 틀릴 수 있습니다</h3>
+<p>현장에서 이런 일이 생길 수 있어요. AI가 <strong>"이 게임 쓰레기 같다"를 긍정으로 분류</strong>하는 거죠. 왜 그럴까요?
+- AI의 임베딩은 <em>수억 개 문서로 학습</em>된 결과라, "쓰레기"라는 단어가 우리(게임 도메인)가 생각하는 의미와 다르게 학습됐을 수 있어요. 학습 데이터에서 그 단어가 부정 맥락으로 충분히 안 나왔거나, 다른 의미로 쓰였을 수 있거든요.
+- 원리를 <strong>모르면</strong> "버그인가?" 하고 끝나버립니다. 하지만 <strong>알면</strong> "아, 이 단어 임베딩이 우리 도메인과 다르게 학습됐구나" 하고 진단하고 → <strong>프롬프트로 규칙을 줘서 교정</strong>할 수 있어요. (예: "게임 리뷰 맥락에서 '쓰레기'는 부정으로 판단해줘.")
+- 우리가 쓸 모델은 대부분 빅테크가 만든 거라 <strong>임베딩 자체는 바꿀 수 없습니다.</strong> 그래서 가장 현실적인 해결책이 <strong>프롬프트로 규칙을 주는 것</strong>이에요.</p>
+<blockquote>
+<p>AI는 100% 완벽하지 않습니다(화면에 늘 "AI는 실수할 수 있다"고 적혀 있죠). 그래서 우리는 결과를 <strong>모니터링하고 관리·감독</strong>해야 합니다.</p>
+</blockquote>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>임베딩(embedding)</td>
+<td>단어/문장을 숫자 좌표로 바꾸는 것</td>
+</tr>
+<tr>
+<td>코사인 유사도</td>
+<td>두 좌표가 얼마나 같은 방향인지(1=비슷, 0=무관, 음수=반대)</td>
+</tr>
+<tr>
+<td>차원(dimension)</td>
+<td>임베딩 숫자의 개수. 많을수록 풍부한 의미 표현(768·1536 등)</td>
+</tr>
+<tr>
+<td>룰 베이스</td>
+<td>사람이 일일이 규칙을 정해 처리하는 방식(한계가 큼)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>게임판 은어(<strong>갓겜·핵노잼·존잼·사기캐·똥겜·갓업데</strong>)는 일반 LLM이 학습한 의미와 어긋나기 쉽습니다. "쓰레기 같다" 사례가 게임 리뷰에서 실제로 터질 함정이에요. 그래서 <strong>감성 분석 단계에서 게임 도메인 용어 가이드(프롬프트)</strong>를 따로 만들어주면 정확도가 올라갑니다 — 게임을 아는 기획자가 분석 품질을 끌어올리는 바로 그 지점이죠.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>유사도가 낮다 = 반대다, 가 아닙니다.</strong> 낮은 값은 "관계가 적다"는 뜻에 가까워요. "재미있다 ↔ 지루하다"는 의미는 반대지만 <em>같은 속성(재미 관련 형용사)</em>을 공유해서 중간값이 나오기도 합니다. 진짜 "반대"는 음수로 나타나요.</li>
+<li>위에 적은 숫자 값(0.92 등)은 전부 <strong>예시</strong>입니다. 모델마다 차원 수·계산 방식이 달라요.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li>AI는 단어를 <strong>숫자 좌표(임베딩)</strong>로 바꿉니다 — 사전·규칙이 아니라요.</li>
+<li>좌표 사이 <strong>거리(유사도)</strong>를 재서 의미의 비슷함을 판단합니다. 가까우면 비슷해요.</li>
+<li>의미가 풍부해서 숫자가 많이 필요한 게 <strong>차원</strong>입니다. AI는 틀릴 수 있고, 그땐 <strong>프롬프트로 교정</strong>해요.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>개념은 충분히 봤으니, 이제 직접 손으로 확인해 봅시다 → <strong>3강: 개발 환경(Google Colab) 세팅 + 임베딩 코드 실습</strong>.</p>
+</article>
+<div class="pager"><a class="prev" href="1강.html"><span class="lbl">← 이전</span><span class="ttl">1강 — 왜 리뷰를 분석하는가 &amp; AI 앱 개발자란</span></a><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><a class="next" href="3강.html"><span class="lbl">다음 →</span><span class="ttl">3강 — 개발 환경 세팅 (Google Colab) &amp; 임베딩 실습</span></a></div>
+</div>
+</body>
+</html>

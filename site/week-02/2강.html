@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2강 — 노이즈 제거와 정규화 (실전 기법)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-02 · 2강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="2">2강 — 노이즈 제거와 정규화 (실전 기법)</h1>
+<blockquote>
+<p>2주차 2강 / 10차시 (25분 15초) · 강의에 없던 보강 설명은 "(보강)"으로 표시합니다.</p>
+</blockquote>
+<h2 id="_1">🎯 이 강의로 답할 질문</h2>
+<ul>
+<li>리뷰 노이즈는 구체적으로 <strong>어떤 형태(유형)</strong>로 나타날까요?</li>
+<li>특수문자·이모지는 <strong>무조건 지우면</strong> 될까요?</li>
+<li>"정규화(normalization)"란 무엇이고, 왜 텍스트를 <strong>통일</strong>해야 할까요?</li>
+<li>한국어·외국어가 섞인 리뷰는 어떻게 다룰까요?</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<p>지난 시간엔 <em>왜</em> 정제하는지를 배웠습니다. 오늘은 실제로 <strong>노이즈를 제거하고 텍스트를 표준화</strong>하는 구체적 기법을 다룹니다. 적용하면 데이터 품질이 눈에 띄게 좋아져요.</p>
+<blockquote>
+<p>먼저 지난 시간 3원칙 복습: ① <strong>토큰은 곧 비용</strong>입니다. ② <strong>GIGO(Garbage In, Garbage Out)</strong> — 지저분한 데이터에선 아무리 좋은 AI도 좋은 결과를 못 냅니다. ③ <strong>노이즈와 신호를 구분</strong>해야 합니다. 무작정 삭제하면 필요한 정보까지 잃어요.</p>
+</blockquote>
+<h3 id="1-6">1. 노이즈의 6가지 유형</h3>
+<p>노이즈는 크게 여섯 가지로 나뉩니다.</p>
+<ol>
+<li><strong>반복 문자</strong> — <code>ㅋㅋㅋㅋㅋ</code>처럼 같은 문자가 과도하게 반복. 토큰을 낭비하고 감정 분석을 왜곡합니다.</li>
+<li><strong>의미 없는 특수문자</strong> — <code>★</code>, <code>♥</code> 같은 장식용 기호.</li>
+<li><strong>이모지</strong> — 정보가 될 수도, 노이즈가 될 수도 있어 <strong>신중히</strong> 처리해야 합니다.</li>
+<li><strong>불규칙한 공백</strong> — 공백이 여러 개 연속되면 토큰 분리에 문제가 생깁니다.</li>
+<li><strong>대소문자 불일치</strong> — 영어에서 <code>great</code> / <code>Great</code> / <code>GREAT</code>가 섞이면 서로 <strong>다른 단어</strong>로 인식될 수 있습니다.</li>
+<li><strong>외국어 혼용</strong> — 한글 리뷰에 일본어·중국어가 섞이면 분석 일관성이 떨어집니다.</li>
+</ol>
+<h3 id="2_1">2. 반복 문자 압축 — 그리고 "독스트링"의 중요성</h3>
+<p>가장 흔한 노이즈인 반복 문자는 정규표현식으로 처리합니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">re</span>
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">compress_repeats</span>(text):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;3번 이상 반복되는 문자를 2번으로 축소한다.</span>
+<span style="color: #BA2121; font-style: italic">    예) &#39;ㅋㅋㅋㅋㅋ&#39; -&gt; &#39;ㅋㅋ&#39;</span>
+<span style="color: #BA2121; font-style: italic">    &quot;&quot;&quot;</span>
+    <span style="color: #3D7B7B; font-style: italic"># (.)   : 아무 문자 하나를 잡아서 기억(캡처)</span>
+    <span style="color: #3D7B7B; font-style: italic"># \1    : 방금 기억한 그 문자를 다시 가리킴(역참조)</span>
+    <span style="color: #3D7B7B; font-style: italic"># {2,}  : 그 문자가 2번 이상 더 반복되면</span>
+    <span style="color: #3D7B7B; font-style: italic"># → 찾은 걸 &#39;\1\1&#39;(그 문자 2개)로 바꿔 2번만 남긴다</span>
+    <span style="color: #008000; font-weight: bold">return</span> re<span style="color: #666">.</span>sub(<span style="color: #BA2121">r&#39;(.)\1{2,}&#39;</span>, <span style="color: #BA2121">r&#39;\1\1&#39;</span>, text)
+
+<span style="color: #008000">print</span>(compress_repeats(<span style="color: #BA2121">&quot;재밌다ㅋㅋㅋㅋㅋ&quot;</span>))  <span style="color: #3D7B7B; font-style: italic"># 재밌다ㅋㅋ</span>
+</code></pre></div>
+
+<p>여기서 잠깐, 함수 맨 위 <code>"""..."""</code>(따옴표 3개)로 감싼 설명을 봅시다. 이걸 <strong>독스트링(docstring)</strong>이라고 합니다. 파이썬에서 따옴표 3개를 쓰면 여러 줄 문자열을 넣을 수 있는데, 함수 안 첫머리에 두면 <strong>이 함수가 무슨 일을 하는지</strong> 설명하는 용도가 됩니다.</p>
+<blockquote>
+<p>강조하고 싶은 점: 개발에서 진짜 중요한 건 코드를 어떻게 구현하느냐보다, <strong>이 함수가 어떤 역할을 하는지 명확히 정의하는 것</strong>입니다. 역할(독스트링)만 분명하면, 실제 코드는 직접 짜든 AI에게 시키든 얼마든지 다양하게 구현할 수 있어요. 그래서 "3번 이상 반복 문자를 2번으로 축소한다" 같은 한 줄을 명확히 적는 습관이 중요합니다.</p>
+</blockquote>
+<h3 id="3">3. 특수문자 — "지울 것"이 아니라 "남길 것"을 정한다</h3>
+<p>특수문자 처리의 핵심은 <strong>무조건 다 지우면 안 된다</strong>는 것입니다.</p>
+<table>
+<thead>
+<tr>
+<th>제거해도 되는 것</th>
+<th>보존해야 하는 것</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>장식용 기호(★, ♥), 아스키 아트</td>
+<td>마침표·쉼표·느낌표·물음표 (문장 구분의 필수)</td>
+</tr>
+<tr>
+<td></td>
+<td><code>$</code>, <code>%</code> (가격·수량 등 정보)</td>
+</tr>
+<tr>
+<td></td>
+<td>프로그래밍·게임 표현 기호 (예: "+10 데미지")</td>
+</tr>
+</tbody>
+</table>
+<p>그래서 똑똑한 방법은 <strong>"지울 것"을 일일이 나열하는 대신, "남길 것"을 지정하고 나머지를 지우는</strong> 것입니다. 정규표현식에서 대괄호 안 맨 앞에 캐럿 <code>[^...]</code>을 쓰면 <strong>"이것들을 제외한 나머지"</strong>라는 뜻이 됩니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">re</span>
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">clean_special</span>(text):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;한글·영어·숫자·공백과 기본 문장부호만 남기고 나머지 특수문자를 제거한다.&quot;&quot;&quot;</span>
+    <span style="color: #3D7B7B; font-style: italic"># [^...] : 대괄호 안 문자들을 &#39;제외한&#39; 나머지를 의미</span>
+    <span style="color: #3D7B7B; font-style: italic"># 가-힣(한글) / a-zA-Z(영어) / 0-9(숫자) / \s(공백) / 기본 문장부호만 남긴다</span>
+    <span style="color: #008000; font-weight: bold">return</span> re<span style="color: #666">.</span>sub(<span style="color: #BA2121">r&#39;[^가-힣a-zA-Z0-9\s.,!?]&#39;</span>, <span style="color: #BA2121">&#39;&#39;</span>, text)
+
+<span style="color: #008000">print</span>(clean_special(<span style="color: #BA2121">&quot;최고예요★♥ +10 데미지!!&quot;</span>))  <span style="color: #3D7B7B; font-style: italic"># 최고예요 10 데미지!!</span>
+</code></pre></div>
+
+<h3 id="4-3">4. 이모지 — 3가지 전략 중 목적에 맞게</h3>
+<p>이모지는 상황에 따라 달라서 <strong>세 가지 전략</strong> 중 고릅니다.</p>
+<ol>
+<li><strong>완전 제거(remove)</strong> — 텍스트만으로 키워드를 뽑을 때. 이모지가 분석을 방해할 때.</li>
+<li><strong>그대로 유지(keep)</strong> — 감정 분석을 할 때. 이모지는 중요한 감정 정보예요(😊 vs 😡).</li>
+<li><strong>텍스트로 변환(convert)</strong> — 웃는 이모지를 "웃는 얼굴"처럼 말로 바꿔, 의미는 보존하면서 텍스트로 분석.</li>
+</ol>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 이모지는 emoji 라이브러리로 처리합니다. (다른 개발자가 만들어 공개한 도구)</span>
+<span style="color: #3D7B7B; font-style: italic"># 설치: pip install emoji</span>
+<span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">emoji</span>
+
+text <span style="color: #666">=</span> <span style="color: #BA2121">&quot;최고예요 😊👍 강추합니다 🎮&quot;</span>
+
+<span style="color: #3D7B7B; font-style: italic"># 1) 완전 제거</span>
+<span style="color: #008000">print</span>(emoji<span style="color: #666">.</span>replace_emoji(text, replace<span style="color: #666">=</span><span style="color: #BA2121">&#39;&#39;</span>))          <span style="color: #3D7B7B; font-style: italic"># 최고예요  강추합니다</span>
+<span style="color: #3D7B7B; font-style: italic"># 2) 그대로 유지 → text 그대로 사용</span>
+<span style="color: #3D7B7B; font-style: italic"># 3) 텍스트로 변환 (의미 보존)</span>
+<span style="color: #008000">print</span>(emoji<span style="color: #666">.</span>demojize(text, language<span style="color: #666">=</span><span style="color: #BA2121">&#39;ko&#39;</span>))            <span style="color: #3D7B7B; font-style: italic"># 최고예요 :웃는_얼굴::따봉: 강추합니다 :게임기:</span>
+</code></pre></div>
+
+<blockquote>
+<p>게임 리뷰 분석에서는 <strong>기본은 제거(remove)</strong> 로 하되, 감정이 중요할 때는 <strong>유지(keep)</strong> 하는 식으로 갑니다. 결국 <em>"무엇을 말했는지"가 중요하면 변환·제거, "어떻게 느꼈는지"가 중요하면 유지</em>라는 목적 기준으로 정합니다.</p>
+</blockquote>
+<h3 id="5">5. 정규화 — 같은 의미를 하나로 통일하기</h3>
+<p><strong>정규화(normalization)</strong>란 다양한 형태로 쓰인 같은 의미를 하나로 통일하는 과정입니다. <strong>도서관 사서</strong>가 책을 정리하는 것과 비슷해요. <code>Harry Potter</code> / <code>HARRY POTTER</code> / <code>해리포터</code> 가 표기는 달라도 같은 책이듯, 사서는 이걸 하나의 항목으로 묶습니다.</p>
+<p>텍스트도 마찬가지입니다. <code>great</code> / <code>Great</code> / <code>GREAT</code> 는 모두 같은 단어인데, 정규화하지 않으면 AI가 <strong>세 개의 다른 단어</strong>로 볼 수 있습니다. 영어 정규화의 기본은 <strong>소문자 변환</strong>이고, 파이썬은 <code>.lower()</code> 메서드 하나로 됩니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>text <span style="color: #666">=</span> <span style="color: #BA2121">&quot;This Game is GREAT&quot;</span>
+<span style="color: #008000">print</span>(text<span style="color: #666">.</span>lower())   <span style="color: #3D7B7B; font-style: italic"># this game is great</span>
+</code></pre></div>
+
+<blockquote>
+<p>⚠️ 주의: 소문자로 바꾸면 <strong>고유명사도 소문자</strong>가 됩니다(예: <code>iPhone</code> → <code>iphone</code>). 그래서 소문자화 여부는 <strong>분석 목적에 따라</strong> 결정해야 합니다.</p>
+</blockquote>
+<h3 id="6">6. 공백 정규화</h3>
+<p>공백도 통일합니다. <code>\s</code>는 모든 종류의 공백(스페이스·탭·줄바꿈)을, <code>+</code>는 "하나 이상"을 뜻하므로, <code>\s+</code>는 <strong>연속된 공백 덩어리</strong>를 찾습니다. 이걸 공백 하나로 바꾸고, <code>.strip()</code>으로 앞뒤 공백을 떼면 깔끔해집니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">re</span>
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">normalize_space</span>(text):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;연속 공백을 하나로 합치고 앞뒤 공백을 제거한다.&quot;&quot;&quot;</span>
+    text <span style="color: #666">=</span> re<span style="color: #666">.</span>sub(<span style="color: #BA2121">r&#39;\s+&#39;</span>, <span style="color: #BA2121">&#39; &#39;</span>, text)   <span style="color: #3D7B7B; font-style: italic"># 공백 덩어리 → 공백 1개</span>
+    <span style="color: #008000; font-weight: bold">return</span> text<span style="color: #666">.</span>strip()                <span style="color: #3D7B7B; font-style: italic"># 앞뒤 공백 제거</span>
+
+dirty <span style="color: #666">=</span> <span style="color: #BA2121">&quot;   이 게임   너무</span><span style="color: #AA5D1F; font-weight: bold">\n\n</span><span style="color: #BA2121">  재미있어요   &quot;</span>
+<span style="color: #008000">print</span>(normalize_space(dirty))  <span style="color: #3D7B7B; font-style: italic"># &#39;이 게임 너무 재미있어요&#39;</span>
+</code></pre></div>
+
+<p>이렇게 하면 토큰 분리가 정확해지고 불필요한 공백 토큰도 줄어듭니다.</p>
+<h3 id="7">7. 한국어의 특수성 — 띄어쓰기</h3>
+<p>한국어에는 특별한 문제가 있습니다. 바로 <strong>띄어쓰기</strong>예요. 영어는 단어 사이에 반드시 공백이 있어 분리가 쉽지만, 한국어는 띄어쓰기 규칙이 복잡하고 사용자들이 자주 생략합니다. 특히 빠르게 쓴 게임 리뷰에서 <code>게임이좋아요진짜꿀잼</code> 같은 표현이 흔하죠. 이러면 토큰 분리가 어렵고, AI가 <code>좋아요</code>와 <code>좋아요</code>(붙은 것)를 다른 단어로 볼 수도 있습니다.</p>
+<blockquote>
+<p>전통적으로 많은 AI가 한국어를 어려워했던 영역입니다. 그래서 우리나라에서 <strong>한국어 띄어쓰기 교정 라이브러리</strong>가 많이 연구됐어요(<code>pip install</code>로 설치, GitHub 개발자 블로그 등에서 코드 공개). 다만 이런 <strong>딥러닝 기반 모델은 인프라가 필요하고 실행이 느려서 대량 처리엔 부담</strong>입니다. 그래서 "이런 분야가 있다" 정도로 알아 두고, 직접 실습보다는 선택적으로 쓰는 게 현실적입니다. 게다가 <strong>요즘 GPT 같은 LLM은 띄어쓰기가 엉성해도 잘 이해</strong>하므로, 우수한 모델을 쓰면 보통 이 부분을 따로 손보지 않아도 됩니다.</p>
+</blockquote>
+<h3 id="8">8. 언어 감지 — 한국어만 거르기</h3>
+<p>한국어 리뷰를 수집해도 실제로는 영어·중국어·일본어가 <strong>20~30%</strong> 섞여 있습니다. 이게 문제를 일으킬 수 있어요.</p>
+<ol>
+<li>한국어 분석기에 외국어를 넣으면 <strong>오류</strong>가 날 수 있습니다.</li>
+<li>분석할 필요 없는 데이터에 <strong>API 비용을 낭비</strong>합니다.</li>
+<li>분석 결과의 <strong>일관성</strong>이 떨어집니다.</li>
+</ol>
+<p>스팀 리뷰에는 재미있는 패턴이 있습니다 — 한국어로 쓰다 영어로 끝나는 리뷰, 번역기로 돌린 어색한 한국어, 자음만 있는 의미 없는 텍스트(<code>ㅇㅇ</code>, <code>ㅋㅋ</code>) 등. 그래서 <strong>한국어 비율을 재서 일정 기준(임계값, threshold) 이상이면 한국어로 판단</strong>하고 필터링합니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">re</span>
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">korean_ratio</span>(text):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;텍스트에서 한글이 차지하는 비율(0~1)을 계산한다.&quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">if</span> <span style="color: #A2F; font-weight: bold">not</span> text:
+        <span style="color: #008000; font-weight: bold">return</span> <span style="color: #666">0</span>
+    hangul <span style="color: #666">=</span> re<span style="color: #666">.</span>findall(<span style="color: #BA2121">r&#39;[가-힣]&#39;</span>, text)      <span style="color: #3D7B7B; font-style: italic"># 한글 글자만 추출</span>
+    <span style="color: #008000; font-weight: bold">return</span> <span style="color: #008000">len</span>(hangul) <span style="color: #666">/</span> <span style="color: #008000">len</span>(text)
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">is_korean</span>(text, threshold<span style="color: #666">=0.3</span>):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;한글 비율이 임계값(threshold) 이상이면 한국어로 본다.&quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">return</span> korean_ratio(text) <span style="color: #666">&gt;=</span> threshold
+
+<span style="color: #008000">print</span>(is_korean(<span style="color: #BA2121">&quot;이 게임 진짜 재밌어요&quot;</span>))   <span style="color: #3D7B7B; font-style: italic"># True</span>
+<span style="color: #008000">print</span>(is_korean(<span style="color: #BA2121">&quot;This is a great game&quot;</span>))    <span style="color: #3D7B7B; font-style: italic"># False</span>
+</code></pre></div>
+
+<blockquote>
+<p>언어 감지는 <strong>반드시 해야 하는 건 아닙니다.</strong> 분석 목적에 따라 고려하세요. (한국어만 분석할 거면 유용하고, 다국어를 다 볼 거면 굳이 거를 필요 없습니다.)</p>
+</blockquote>
+<h3 id="9">9. 전체 정제 파이프라인</h3>
+<p>지금까지를 한 줄로 꿰면 이런 순서가 됩니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">re</span><span style="color: #666">,</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">emoji</span>
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">clean_review</span>(text, keep_emoji<span style="color: #666">=</span><span style="color: #008000; font-weight: bold">False</span>):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;게임 리뷰 한 건을 정제하는 전체 파이프라인.</span>
+<span style="color: #BA2121; font-style: italic">    분석 목적에 따라 각 단계는 켜고 끄거나 순서를 바꿀 수 있다.&quot;&quot;&quot;</span>
+    text <span style="color: #666">=</span> re<span style="color: #666">.</span>sub(<span style="color: #BA2121">r&#39;(.)\1{2,}&#39;</span>, <span style="color: #BA2121">r&#39;\1\1&#39;</span>, text)          <span style="color: #3D7B7B; font-style: italic"># 1) 반복 문자 압축</span>
+    <span style="color: #008000; font-weight: bold">if</span> <span style="color: #A2F; font-weight: bold">not</span> keep_emoji:
+        text <span style="color: #666">=</span> emoji<span style="color: #666">.</span>replace_emoji(text, replace<span style="color: #666">=</span><span style="color: #BA2121">&#39;&#39;</span>)     <span style="color: #3D7B7B; font-style: italic"># 2) 이모지 처리(목적에 따라)</span>
+    text <span style="color: #666">=</span> re<span style="color: #666">.</span>sub(<span style="color: #BA2121">r&#39;http\S+|@\w+&#39;</span>, <span style="color: #BA2121">&#39;&#39;</span>, text)             <span style="color: #3D7B7B; font-style: italic"># 3) URL·멘션 제거</span>
+    text <span style="color: #666">=</span> re<span style="color: #666">.</span>sub(<span style="color: #BA2121">r&#39;[^가-힣a-zA-Z0-9\s.,!?]&#39;</span>, <span style="color: #BA2121">&#39;&#39;</span>, text)  <span style="color: #3D7B7B; font-style: italic"># 4) 특수문자 정리</span>
+    text <span style="color: #666">=</span> text<span style="color: #666">.</span>lower()                                  <span style="color: #3D7B7B; font-style: italic"># 5) 소문자 통일(영어)</span>
+    text <span style="color: #666">=</span> re<span style="color: #666">.</span>sub(<span style="color: #BA2121">r&#39;\s+&#39;</span>, <span style="color: #BA2121">&#39; &#39;</span>, text)<span style="color: #666">.</span>strip()             <span style="color: #3D7B7B; font-style: italic"># 6) 공백 정규화</span>
+    <span style="color: #008000; font-weight: bold">return</span> text
+
+<span style="color: #008000">print</span>(clean_review(<span style="color: #BA2121">&quot;최고의 게임!!! 😊 http://x.com ★재밌다ㅋㅋㅋㅋ&quot;</span>))
+<span style="color: #3D7B7B; font-style: italic"># 최고의 게임!! 재밌다ㅋㅋ</span>
+</code></pre></div>
+
+<blockquote>
+<p><strong>가장 중요한 원칙:</strong> 정답인 단일 파이프라인은 없습니다. <strong>무엇을 분석할지(목적)와 도메인 지식에 따라</strong> 각 단계의 on/off·순서·강도가 달라집니다. 큰 틀을 먼저 이해하고, "나는 소문자로 바꾸고 싶다" 같은 목적이 정해지면 그 단계는 직접 짜거나 AI에게 시켜 쉽게 구현하면 됩니다. 실습에서는 <strong>굵게 표시된 독스트링 부분을 꼭 다시 읽으며</strong> 각 단계가 무슨 일을 하는지 떠올려 보세요.</p>
+</blockquote>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GIGO</td>
+<td>Garbage In, Garbage Out — 쓰레기를 넣으면 쓰레기가 나온다</td>
+</tr>
+<tr>
+<td>독스트링(docstring)</td>
+<td>함수가 무슨 일을 하는지 적는 <code>"""설명"""</code>. 코드보다 역할 정의가 먼저</td>
+</tr>
+<tr>
+<td>정규화(normalization)</td>
+<td>같은 의미의 여러 표기를 하나로 통일 (예: 소문자화)</td>
+</tr>
+<tr>
+<td><code>.lower()</code> / <code>.strip()</code></td>
+<td>소문자 변환 / 앞뒤 공백 제거 (파이썬 기본 메서드)</td>
+</tr>
+<tr>
+<td><code>[^...]</code></td>
+<td>정규식에서 "이걸 제외한 나머지"</td>
+</tr>
+<tr>
+<td><code>\s+</code></td>
+<td>연속된 공백 덩어리</td>
+</tr>
+<tr>
+<td>임계값(threshold)</td>
+<td>판단 기준선 (예: 한글 30% 이상이면 한국어)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>"모든 분석에 통하는 단일 정제 파이프라인은 없다"는 말이 오늘의 핵심입니다. 이모지를 남길지(감성)·지울지(키워드), 사양 표기를 살릴지(성능)·버릴지(감성)를 정하는 건 결국 <strong>이 분석으로 무슨 의사결정을 할지 아는 사람</strong>의 몫이에요. 즉 정제 설계 자체가 기획 행위입니다. "+10 데미지" 같은 게임 특유의 표현을 노이즈로 지워 버리면 밸런스 관련 신호를 통째로 잃는다는 걸, 게임을 아는 사람만 알아챕니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>"특수문자는 다 노이즈"가 아닙니다.</strong> 문장부호·<code>$</code>·<code>%</code>·게임 표현 기호는 정보입니다. "남길 것"을 지정하세요.</li>
+<li><strong>한국어 띄어쓰기 교정기를 꼭 돌려야 하는 건 아닙니다.</strong> 느리고 무겁고, 좋은 LLM은 어차피 잘 이해합니다.</li>
+<li>(용어 정리) 전사에서 흔들린 표기 — <code>docstring</code>, <code>\s</code>(역슬래시 s), <code>threshold</code>(임계값), <code>emoji</code> 라이브러리, <code>.lower()</code>(로어), <code>.strip()</code>(스트립), GitHub.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li>노이즈는 <strong>6가지 유형</strong>(반복·특수문자·이모지·공백·대소문자·외국어)으로 나뉩니다.</li>
+<li>특수문자·이모지는 <strong>목적에 따라</strong> 남길지/지울지/변환할지 정합니다. "지울 것"보다 "남길 것"을 지정하세요.</li>
+<li>정규화는 <strong>같은 의미를 하나로 통일</strong>(소문자·공백)하는 것. 그리고 <strong>단일 정답 파이프라인은 없습니다</strong> — 목적·도메인이 설정을 정합니다.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>여기까지가 11차시 프로젝트 <strong>"내 게임 리뷰 정제하기"</strong>의 재료입니다(전사 없이 직접 실습). 깨끗해진 텍스트는 이제 AI에게 넘길 준비가 됐어요. 그런데 AI는 글자를 그대로 못 읽죠. 다음 3강에서 그 텍스트를 숫자로 바꾸는 <strong>임베딩</strong>을, 1주차 때보다 한 단계 깊은 전문 용어(벡터·차원·코사인 유사도)로 다시 봅니다.</p>
+</article>
+<div class="pager"><a class="prev" href="1강.html"><span class="lbl">← 이전</span><span class="ttl">1강 — 텍스트 정제는 왜 하는가 &amp; 정규표현식 입문</span></a><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><a class="next" href="3강.html"><span class="lbl">다음 →</span><span class="ttl">3강 — 임베딩 심화: 벡터·차원·코사인 유사도</span></a></div>
+</div>
+</body>
+</html>

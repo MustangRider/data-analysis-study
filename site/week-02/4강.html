@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4강 — 샘플링과 대표성</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-02 · 4강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="4">4강 — 샘플링과 대표성</h1>
+<blockquote>
+<p>2주차 4강 / 13차시 (25분 10초) · 강의에 없던 보강 설명은 "(보강)"으로 표시합니다.</p>
+</blockquote>
+<h2 id="_1">🎯 이 강의로 답할 질문</h2>
+<ul>
+<li>리뷰 10만 건을 <strong>전부</strong> 분석해야 할까요? 일부만 봐도 될까요?</li>
+<li><strong>모집단·표본·대표성</strong>이란 무엇일까요? (여론조사·국 끓이기 비유)</li>
+<li><strong>층화 샘플링</strong>은 왜 단순 무작위보다 나을까요?</li>
+<li>몇 개를 뽑아야 할까요? 신뢰수준·오차범위는 뭘까요?</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<p>지난 시간에 임베딩을 배웠죠. 그런데 고민이 생깁니다. 리뷰가 10만 건이면 전부 임베딩하는 데 API 호출 10만 번, 저장 공간 300MB 이상, 시간도 엄청나게 듭니다. <strong>정말 다 분석해야 할까요?</strong> 통계학은 "아니오"라고 답합니다. <strong>잘 뽑은 1,000건이 10만 건과 거의 같은 결론</strong>을 냅니다. 오늘 배울 <strong>샘플링</strong>은 비용을 90% 이상 줄이면서 정확도는 95%를 유지하는 방법이에요.</p>
+<h3 id="1">1. 전수조사는 왜 문제인가</h3>
+<p>전부 다 분석하는 <strong>전수조사</strong>의 문제 세 가지입니다.</p>
+<ol>
+<li><strong>비용 폭발</strong> — 임베딩 API를 10만 번 호출하면 수만 원, 저장 300MB 이상. 매달 분석하면 연 수십만~수백만 원, 규모에 따라 수천만 원까지 갑니다.</li>
+<li><strong>시간</strong> — 10만 건 처리에 API 호출만 몇 시간. 실시간으로 리뷰 트렌드를 보고 싶다면 이 지연이 발목을 잡습니다.</li>
+<li><strong>불필요한 정밀도</strong> — 우리가 알고 싶은 건 "대략 긍정이 몇 %인가, 주요 불만이 뭔가"입니다. 99.9% 정확도가 필요한 게 아니에요. 95%면 충분합니다. 긍정 비율을 <code>72.347%</code>처럼 소수점 셋째 자리까지 알 필요는 없잖아요.</li>
+</ol>
+<p>그래서 해결책이 <strong>샘플링</strong>입니다. 10만 건 중 1,000건만 잘 뽑으면 <strong>비용은 1%대로, 정확도는 95% 이상</strong> 유지할 수 있습니다.</p>
+<h3 id="2-1000-5000">2. 여론조사는 어떻게 1,000명으로 5,000만을 알까</h3>
+<p>선거 여론조사는 1,000명에게 물어 "지지율 45%, 오차범위 ±3.1%"라고 발표합니다. 인구 5,000만 명 중 1,000명이면 <strong>0.002%</strong>인데 어떻게 전체를 알까요? 세 조건이 맞으면 가능합니다.</p>
+<ol>
+<li><strong>무작위 추출</strong> — 모든 사람이 뽑힐 확률이 같아야 합니다. 서울 사람만, 젊은 사람만 뽑으면 안 돼요.</li>
+<li><strong>충분한 크기</strong> — 통계학적으로 1,000명 정도면 전체 추정에 충분합니다(수학적으로 증명된 사실).</li>
+<li><strong>대표성</strong> — 지역·연령·성별 비율을 실제 인구 비율과 맞춥니다(서울 20%, 경기 25%처럼).</li>
+</ol>
+<h3 id="3">3. 핵심 비유 — 국 끓일 때 한 숟가락</h3>
+<p>큰 냄비에 국을 끓입니다. 간을 보려고 국을 다 마실까요? 아니죠. <strong>한 숟가락</strong>만 떠서 맛보면 됩니다. 단, 조건이 있어요. <strong>국이 잘 섞여 있어야</strong> 합니다. 소금이 바닥에 가라앉아 있으면 위는 싱겁고 아래는 짜니까요.</p>
+<ul>
+<li><strong>모집단(population)</strong> = 큰 냄비의 국 전체 = 리뷰 10만 건</li>
+<li><strong>표본(sample)</strong> = 한 숟가락 = 우리가 뽑은 1,000건</li>
+</ul>
+<p>잘 섞인 국이면 한 숟갈로 전체 간을 알 수 있듯, <strong>잘 뽑은 표본이면 전체 경향을 알 수 있습니다.</strong> 문제는 "어떻게 잘 섞느냐 = 어떻게 잘 뽑느냐"예요.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>전수조사</th>
+<th>샘플링</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>대상</td>
+<td>10만 건 전체</td>
+<td>대표성 있는 1,000건</td>
+</tr>
+<tr>
+<td>비용</td>
+<td>100%</td>
+<td>약 1%</td>
+</tr>
+<tr>
+<td>시간</td>
+<td>수 시간</td>
+<td>수 분</td>
+</tr>
+<tr>
+<td>정확도</td>
+<td>이론상 100%</td>
+<td>95% 이상</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>정확도 100%와 95%의 차이가 중요할까요? "긍정 72%"든 "긍정 70~74%"든 비즈니스 의사결정은 거의 같습니다. 오히려 전수조사는 <strong>과도한 정밀도</strong>일 수 있어요.</p>
+</blockquote>
+<h3 id="4-vs">4. 단순 무작위 vs 층화 샘플링</h3>
+<ul>
+<li><strong>단순 무작위 샘플링</strong> — 전체에서 그냥 랜덤하게 뽑기. 간단하지만 <strong>운이 나쁘면 편향</strong>될 수 있습니다. 전체가 긍정 70%인데 우연히 긍정 90%가 뽑힐 수도 있어요(확률은 낮지만 가능).</li>
+<li><strong>층화 샘플링(stratified sampling)</strong> — 먼저 <strong>그룹(층)으로 나누고</strong>, 각 그룹에서 <strong>비율에 맞게</strong> 뽑습니다. 전체가 긍정 70%·부정 30%면, 1,000건을 뽑을 때 긍정에서 700건·부정에서 300건. 그러면 샘플도 정확히 70:30이 됩니다.</li>
+</ul>
+<h3 id="5-4">5. 리뷰 데이터의 층화 기준 4가지</h3>
+<ol>
+<li><strong>추천 여부</strong> (가장 기본) — 추천 80%·비추천 20%면 샘플도 그 비율로. 안 그러면 긍정/부정으로 편향됩니다.</li>
+<li><strong>플레이 시간</strong> — 1시간 미만 유저와 100시간 이상 유저는 리뷰가 다릅니다("튜토리얼 어렵다"는 초보 vs "엔드 콘텐츠 부족"한 고인물). 둘 다 들어야 균형이 잡혀요.</li>
+<li><strong>작성 시점</strong> — 출시 직후 리뷰는 버그 불만이 많고, 1년 후 리뷰는 업데이트 평가가 많습니다. 시기별로 뽑으면 게임의 변화 과정이 보입니다.</li>
+<li><strong>리뷰 길이</strong> — 짧은 리뷰는 "재밌어요" 정도지만, 긴 리뷰는 구체적 장단점을 담습니다. 긴 리뷰가 10%뿐이어도 그 10%를 포함해야 깊은 인사이트가 나옵니다.</li>
+</ol>
+<h3 id="6">6. 몇 개를 뽑아야 할까 — 샘플 크기</h3>
+<p>결론부터: <strong>대부분 1,000개면 충분</strong>합니다(통계학적으로 검증된 수치).</p>
+<table>
+<thead>
+<tr>
+<th>샘플 크기</th>
+<th>오차범위</th>
+<th>해석 예시</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>100개</td>
+<td>±10%</td>
+<td>긍정 60~80%</td>
+<td>대략적 경향만</td>
+</tr>
+<tr>
+<td>400개</td>
+<td>±5%</td>
+<td>긍정 65~75%</td>
+<td>실용적, 빠른 탐색</td>
+</tr>
+<tr>
+<td>1,000개</td>
+<td>±3%</td>
+<td>긍정 67~74%</td>
+<td>신뢰할 수준, 비즈니스 의사결정 충분</td>
+</tr>
+<tr>
+<td>10만개</td>
+<td>±1%</td>
+<td>—</td>
+<td>더 정밀하나 보통 불필요(비용 10배)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>재미있는 점: 모집단이 10만 건이든 100만 건이든 <strong>필요한 샘플 크기는 비슷</strong>합니다(약 1,000개). 이게 통계학의 힘이에요.</p>
+</blockquote>
+<h3 id="7">7. 신뢰수준 &amp; 오차범위</h3>
+<ul>
+<li><strong>신뢰수준 95%</strong> — 같은 방식으로 100번 샘플링하면 <strong>95번은 정확한 범위 안</strong>에 들어간다는 뜻. 업계 표준입니다(99%도 있지만 보통 95%).</li>
+<li><strong>오차범위 ±3%</strong> — 실제 값이 이 범위 안에 있다는 뜻. 1,000개 샘플이면 대략 ±3%.</li>
+</ul>
+<p>합쳐서 해석하면 — "긍정 70%, 신뢰수준 95%, 오차범위 ±3%"는 <strong>실제 전체 리뷰의 긍정 비율이 67~73%일 확률이 95%</strong>라는 의미입니다. 이 정도면 "대략 70% 정도 긍정이구나" 판단하기 충분하죠. 공식을 외울 필요는 없고, <strong>"1,000개 뽑으면 ±3%"</strong> 정도만 기억하면 됩니다.</p>
+<h3 id="8">8. 좋은 샘플링 체크리스트</h3>
+<ol>
+<li><strong>대표성</strong> — 전체와 샘플의 비율이 일치할 것. 특정 그룹(예: 100시간 이상 유저)이 누락되지 않을 것. 극단값(아주 긴/짧은 리뷰)도 포함할 것.</li>
+<li><strong>크기</strong> — 최소 400개, 정밀하면 1,000개, <strong>그룹별로 나누면 각 그룹에 최소 100개씩</strong>. 부정 리뷰가 30개뿐이면 부정 분석의 신뢰도가 낮습니다.</li>
+<li><strong>무작위성</strong> — 시간순 앞에서만 뽑으면 초기 리뷰만 들어갑니다. 그리고 <strong>랜덤 시드(random seed)를 고정</strong>해 두면 다음에도 같은 결과를 재현할 수 있습니다.</li>
+</ol>
+<h3 id="9">9. 잘못된 샘플링의 함정</h3>
+<ul>
+<li><strong>시간 편향</strong> — 최근 1,000개만 뽑았는데, 이 게임이 출시 초엔 버그가 심했다가 나중에 고쳐졌다면? "버그 없는 좋은 게임"으로 오판하고, <strong>초기에 이탈한 유저들의 불만을 놓칩니다.</strong></li>
+<li><strong>길이 편향</strong> — 분석하기 좋으라고 100자 이상 리뷰만 뽑았는데, 짧은 리뷰는 대부분 "재밌어요"(긍정)였다면? 긴 리뷰는 불만을 자세히 쓰는 경우가 많아 <strong>부정 편향된 샘플</strong>이 됩니다.</li>
+<li><strong>추천 편향</strong> — 추천 리뷰만 뽑아 분석하면 그 안의 <strong>개선점을 놓칩니다.</strong></li>
+</ul>
+<p>그래서 시기별·길이별·추천 여부별로 비율을 맞춰 뽑는 <strong>층화 샘플링</strong>이 중요합니다.</p>
+<h3 id="10">10. 실제 적용 + 코드</h3>
+<p>전체 10만 건, 추천 80%·비추천 20%라면 1,000건은 추천 800·비추천 200. 플레이 시간으로도 나눌 수 있고(1시간 미만 40%·1~10시간 35%·10시간 이상 25% → 400·350·250), 두 기준을 동시에 적용하는 것을 <strong>교차 층화</strong>라고 합니다. 파이썬에서는 판다스(pandas)의 <code>groupby</code>와 <code>sample</code>을 조합하면 쉽게 구현돼요.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">pandas</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">as</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">pd</span>
+
+<span style="color: #3D7B7B; font-style: italic"># df: 리뷰 데이터프레임 (예: &#39;recommend&#39; 추천여부 컬럼이 있다고 가정)</span>
+<span style="color: #3D7B7B; font-style: italic"># 목표: 전체 1,000건을 추천/비추천 &#39;비율을 유지&#39;하며 뽑기(층화 샘플링)</span>
+
+n_total <span style="color: #666">=</span> <span style="color: #666">1000</span>
+<span style="color: #3D7B7B; font-style: italic"># 그룹별로 전체 비율(frac)에 맞춰 같은 비율로 뽑으면 자동으로 층화가 된다</span>
+frac <span style="color: #666">=</span> n_total <span style="color: #666">/</span> <span style="color: #008000">len</span>(df)
+
+sample <span style="color: #666">=</span> (
+    df<span style="color: #666">.</span>groupby(<span style="color: #BA2121">&#39;recommend&#39;</span>, group_keys<span style="color: #666">=</span><span style="color: #008000; font-weight: bold">False</span>)   <span style="color: #3D7B7B; font-style: italic"># 추천/비추천 그룹으로 나누고</span>
+      <span style="color: #666">.</span>apply(<span style="color: #008000; font-weight: bold">lambda</span> g: g<span style="color: #666">.</span>sample(frac<span style="color: #666">=</span>frac,        <span style="color: #3D7B7B; font-style: italic"># 각 그룹에서 같은 비율로</span>
+                                random_state<span style="color: #666">=42</span>)) <span style="color: #3D7B7B; font-style: italic"># random_state=시드 고정(재현 가능)</span>
+)
+
+<span style="color: #3D7B7B; font-style: italic"># 검증: 원본과 샘플의 추천 비율이 비슷한지 확인</span>
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;원본 비율:</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>, df[<span style="color: #BA2121">&#39;recommend&#39;</span>]<span style="color: #666">.</span>value_counts(normalize<span style="color: #666">=</span><span style="color: #008000; font-weight: bold">True</span>))
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;샘플 비율:</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>, sample[<span style="color: #BA2121">&#39;recommend&#39;</span>]<span style="color: #666">.</span>value_counts(normalize<span style="color: #666">=</span><span style="color: #008000; font-weight: bold">True</span>))
+</code></pre></div>
+
+<blockquote>
+<p><code>random_state=42</code>처럼 <strong>시드를 고정</strong>하면, 다음에 다시 돌려도 똑같은 1,000건이 뽑혀 결과를 재현할 수 있습니다. 결과적으로 이 1,000건이 10만 건 전체를 대표하게 되고, 비용은 약 99% 절감됩니다.</p>
+</blockquote>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>모집단(population)</td>
+<td>분석 대상 전체 (리뷰 10만 건)</td>
+</tr>
+<tr>
+<td>표본(sample)</td>
+<td>거기서 뽑은 일부 (1,000건)</td>
+</tr>
+<tr>
+<td>대표성</td>
+<td>표본이 전체의 비율·특성을 잘 반영하는 정도</td>
+</tr>
+<tr>
+<td>층화 샘플링</td>
+<td>그룹으로 나눠 비율 맞게 뽑기</td>
+</tr>
+<tr>
+<td>교차 층화</td>
+<td>두 기준(추천×플레이시간 등)을 동시에 적용</td>
+</tr>
+<tr>
+<td>신뢰수준 95%</td>
+<td>100번 뽑으면 95번은 범위 안</td>
+</tr>
+<tr>
+<td>오차범위 ±3%</td>
+<td>실제 값이 들어 있는 폭 (1,000개 ≈ ±3%)</td>
+</tr>
+<tr>
+<td>랜덤 시드</td>
+<td>같은 결과를 재현하게 고정하는 값 (<code>random_state</code>)</td>
+</tr>
+<tr>
+<td><code>groupby</code> / <code>sample</code></td>
+<td>판다스의 그룹 나누기 / 무작위 추출 함수</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>층화 기준(추천 여부·플레이 시간·작성 시점·리뷰 길이)이 곧 <strong>유저 세그먼트</strong>입니다. "초보 vs 고인물", "출시 초기 vs 1년 후" 유저의 목소리를 비율대로 다 담는 건, 라이트~헤비 유저를 균형 있게 보는 기획 감각과 똑같아요. 특히 <strong>시간 편향의 함정</strong>(최근 리뷰만 보면 초기 이탈 유저 불만을 놓침)은, 리텐션 분석에서 "남아 있는 유저만 보면 떠난 유저가 왜 떠났는지 모른다"는 생존자 편향과 정확히 같은 문제입니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>"데이터는 많을수록 좋다"가 항상 옳진 않습니다.</strong> 편향된 데이터가 많으면 틀린 결론을 더 확신하게 됩니다. <strong>잘 뽑은 1,000건 &gt; 편향된 10만 건.</strong></li>
+<li><strong>샘플링은 "대충"이 아니라 과학적 방법입니다.</strong> 대표성이 정확도를 결정해요.</li>
+<li>(용어 정리) 전사에서 흔들린 표기·수치 — <code>정밀도</code>(친밀도 아님), 샘플 크기 100/1,000 혼동은 문맥상 <strong>1,000</strong>, <code>stratified sampling</code>(층화), <code>random_state</code>(랜덤 시드).</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li>전수조사는 <strong>비용·시간·과도한 정밀도</strong> 때문에 비효율적입니다. 잘 뽑은 1,000건이면 충분해요.</li>
+<li><strong>층화 샘플링</strong>으로 추천·플레이시간·시점·길이 비율을 맞춰 뽑아야 대표성이 생깁니다.</li>
+<li><strong>1,000개 ≈ 오차 ±3%</strong>, 모집단이 10만이든 100만이든 비슷. 비용 99%↓·정확도 95% 유지.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>여기까지가 14차시 프로젝트 <strong>"리뷰 샘플링 설계"</strong>의 재료입니다(<code>groupby</code>+<code>sample</code>, 시드 고정으로 직접 실습). 깨끗하게 정제하고 대표성 있게 뽑은 데이터가 준비됐으니, 이제 드디어 <strong>AI에게 분석을 시킬</strong> 차례예요. 다음 5강에서 <strong>LLM API</strong>를 처음 연동합니다.</p>
+</article>
+<div class="pager"><a class="prev" href="3강.html"><span class="lbl">← 이전</span><span class="ttl">3강 — 임베딩 심화: 벡터·차원·코사인 유사도</span></a><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><a class="next" href="5강.html"><span class="lbl">다음 →</span><span class="ttl">5강 — LLM API 연동 (OpenRouter)</span></a></div>
+</div>
+</body>
+</html>

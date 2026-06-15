@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5강 — LLM API 연동 (OpenRouter)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-02 · 5강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="5-llm-api-openrouter">5강 — LLM API 연동 (OpenRouter)</h1>
+<blockquote>
+<p>2주차 5강 / 15차시 (25분 11초) · 강의에 없던 보강 설명은 "(보강)"으로 표시합니다.</p>
+</blockquote>
+<h2 id="_1">🎯 이 강의로 답할 질문</h2>
+<ul>
+<li>LLM을 <strong>코드로 호출</strong>한다는 게 무슨 뜻일까요? (웹 채팅과 뭐가 다를까요?)</li>
+<li>왜 GPT·Claude를 직접 연동하지 않고 <strong>OpenRouter</strong>를 쓸까요?</li>
+<li><strong>API 키</strong>는 무엇이고, 왜 코드에 직접 적으면 안 될까요?</li>
+<li>실제로 AI를 호출하는 코드는 어떻게 생겼을까요?</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<p>지난 시간 데이터 품질 검증 프로젝트로 정제된 리뷰가 준비됐습니다(결측치 처리·중복 제거·분석 대상 언어 필터링 등). 이제 진짜 재미있는 부분이에요. 이 데이터를 <strong>AI에게 분석시키는 첫 걸음</strong>, 바로 <strong>LLM API 연동</strong>입니다. 생각보다 간단해요. 코드 몇 줄이면 AI에게 질문하고 답을 받습니다.</p>
+<h3 id="1-llm">1. LLM 서비스에는 뭐가 있나</h3>
+<table>
+<thead>
+<tr>
+<th>서비스</th>
+<th>만든 곳</th>
+<th>특징</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ChatGPT</strong></td>
+<td>OpenAI</td>
+<td>가장 유명한 AI 챗봇</td>
+</tr>
+<tr>
+<td><strong>Claude</strong></td>
+<td>Anthropic</td>
+<td>긴 문서 처리에 강함</td>
+</tr>
+<tr>
+<td><strong>Gemini</strong></td>
+<td>Google</td>
+<td>무료로 사용 가능</td>
+</tr>
+<tr>
+<td><strong>Grok</strong></td>
+<td>xAI(일론 머스크)</td>
+<td>트위터(X)와 연동</td>
+</tr>
+</tbody>
+</table>
+<p>이런 AI들은 웹사이트에서 채팅으로만 쓰는 게 아니라 <strong>코드로 호출</strong>할 수도 있습니다. 그게 바로 <strong>LLM API</strong>예요. 우리 프로그램이 AI에게 질문하고 답을 받는 거죠.</p>
+<h3 id="2-openrouter">2. 왜 OpenRouter인가</h3>
+<p>GPT도, Claude도, Gemini도 써보고 싶다면? 직접 연동하려면 <strong>각각 회원가입하고, 각각 결제수단을 등록하고, 코드도 각각 다르게</strong> 작성해야 합니다. 너무 번거롭죠. 이걸 해결해 주는 게 <strong>OpenRouter</strong>입니다.</p>
+<p>OpenRouter는 <strong>여러 AI 모델을 하나의 창구로</strong> 쓰게 해주는 서비스예요. 우리 코드가 OpenRouter에 요청을 보내면, OpenRouter가 원하는 AI 모델에게 대신 전달하고 응답을 받아옵니다. 장점 세 가지:</p>
+<ol>
+<li><strong>하나의 API</strong> — 코드를 한 번 배우면 GPT든 Claude든 Gemini든 다 씁니다.</li>
+<li><strong>무료 모델 지원</strong> — Gemini 같은 무료 모델을 결제수단 없이 시작할 수 있습니다. (단, 인기 있는 무료 모델은 사용량이 다 차서 에러가 나기도 해요.)</li>
+<li><strong>쉬운 전환</strong> — 다른 모델로 바꾸고 싶으면 <strong>코드 한 줄만</strong> 수정하면 됩니다.</li>
+</ol>
+<h3 id="3-api">3. API 키 = 나를 인증하는 비밀번호</h3>
+<p><strong>API 키</strong>는 나를 인증하는 비밀번호입니다. <strong>도서관 회원증</strong>으로 생각하면 쉬워요. 책을 빌리려면 회원증을 보여줘야 하듯, API를 쓰려면 API 키를 보내야 합니다. 회원증을 잃어버리면 남이 내 이름으로 책을 빌릴 수 있듯, <strong>API 키가 유출되면 남이 내 계정으로 AI를 써서 비용이 청구</strong>될 수 있어요. 그래서 <strong>절대 남에게 보여주면 안 됩니다.</strong> 비밀번호와 똑같이 다루세요.</p>
+<p><strong>발급 방법:</strong> <code>openrouter.ai</code> 접속 → 회원가입 → 우측 상단 <strong>API Keys</strong> 메뉴 → 키 생성(이름은 기억하기 좋게, 예: "AI 리뷰") → 복사해서 안전한 곳에 저장. ⚠️ 이 키는 <strong>처음 한 번만 보여주므로</strong>, 놓치면 다시 만들어야 합니다. 만료 기간은 개발용이면 무기한도 괜찮지만, 기간을 정하면 보안이 더 높아집니다.</p>
+<h3 id="4-api-colab-secrets">4. API 키 관리 — Colab Secrets를 쓰세요</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>방법</th>
+<th>문제/장점</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>❌ 위험</td>
+<td>코드에 키를 직접 입력</td>
+<td>노트북을 공유하면 <strong>키도 같이 넘어감</strong></td>
+</tr>
+<tr>
+<td>✅ 안전</td>
+<td><strong>Colab Secrets</strong>에 저장하고 코드에서 불러오기</td>
+<td>코드에 키가 안 보여 <strong>공유해도 안전</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Colab Secrets 설정:</strong> 왼쪽 사이드바의 <strong>열쇠 모양 아이콘</strong> 클릭 → 시크릿 패널 → <strong>새 비밀 추가(+)</strong> → 이름에 <code>OPENROUTER_API_KEY</code>(인식할 이름), 값에 발급받은 키 붙여넣기 → <strong>노트북 액세스 토글을 켜서</strong> 활성화. (권한을 부여해야 코드에서 그 키를 가져다 쓸 수 있습니다.)</p>
+<blockquote>
+<p>이 방식은 OpenRouter뿐 아니라 <strong>유명한 LLM API를 쓸 때 공통으로 쓰는 표준 방법</strong>입니다. 기억해 두세요.</p>
+</blockquote>
+<h3 id="5-4">5. 실습 — 4단계로 첫 호출</h3>
+<p>실습은 ① 라이브러리 설치 → ② API 키 불러오기 → ③ 클라이언트 설정 → ④ 첫 호출, 네 단계입니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># ① 라이브러리 설치</span>
+<span style="color: #3D7B7B; font-style: italic">#    OpenRouter는 &#39;OpenAI 호환&#39; API를 제공하므로, openai 라이브러리를 그대로 쓴다.</span>
+<span style="color: #3D7B7B; font-style: italic">#    (ChatGPT가 초기 대표 LLM이라 API 사용 표준을 정했다고 보면 된다)</span>
+<span style="color: #3D7B7B; font-style: italic"># 설치: pip install openai</span>
+
+<span style="color: #3D7B7B; font-style: italic"># ② API 키 불러오기 (Colab Secrets에서 — 코드에 키를 직접 적지 않는다!)</span>
+<span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">google.colab</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> userdata
+api_key <span style="color: #666">=</span> userdata<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;OPENROUTER_API_KEY&#39;</span>)   <span style="color: #3D7B7B; font-style: italic"># Secrets에 저장한 그 이름</span>
+
+<span style="color: #3D7B7B; font-style: italic"># ③ 클라이언트 설정</span>
+<span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">openai</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> OpenAI
+client <span style="color: #666">=</span> OpenAI(
+    base_url<span style="color: #666">=</span><span style="color: #BA2121">&quot;https://openrouter.ai/api/v1&quot;</span>,    <span style="color: #3D7B7B; font-style: italic"># ← OpenRouter 주소(이게 핵심)</span>
+    api_key<span style="color: #666">=</span>api_key,                            <span style="color: #3D7B7B; font-style: italic"># ← 방금 불러온 키</span>
+)
+
+<span style="color: #3D7B7B; font-style: italic"># ④ 첫 호출</span>
+response <span style="color: #666">=</span> client<span style="color: #666">.</span>chat<span style="color: #666">.</span>completions<span style="color: #666">.</span>create(
+    model<span style="color: #666">=</span><span style="color: #BA2121">&quot;google/gemini-2.0-flash-exp:free&quot;</span>,   <span style="color: #3D7B7B; font-style: italic"># ← 이 칸만 바꾸면 모델 교체</span>
+    messages<span style="color: #666">=</span>[
+        {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;user&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: <span style="color: #BA2121">&quot;게임 리뷰 분석이 왜 중요한가요?&quot;</span>}
+    ],
+)
+
+<span style="color: #3D7B7B; font-style: italic"># 응답 구조: choices[0] → message → content 에 답변 텍스트가 들어 있다</span>
+<span style="color: #008000">print</span>(response<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content)
+<span style="color: #3D7B7B; font-style: italic"># 이번 호출에 쓴 토큰 수(비용과 직결)</span>
+<span style="color: #008000">print</span>(response<span style="color: #666">.</span>usage<span style="color: #666">.</span>total_tokens)
+</code></pre></div>
+
+<h3 id="6-rate-limit">6. 모델 교체 &amp; rate limit</h3>
+<p>위 코드에서 <strong><code>model</code> 칸만 바꾸면</strong> 여러 모델을 쓸 수 있습니다. 그런데 인기 있는 무료 모델(예: Gemini 2.0)은 <strong>사용량이 다 차서 <code>rate limit error</code>(사용량 초과)</strong> 가 날 때가 있어요. 당황하지 말고 OpenRouter 사이트의 모델 목록에서 <strong><code>free</code>로 검색</strong> → 다른 무료 모델(예: Mistral) 선택 → <strong>모델 ID 복사</strong> → <code>model</code> 칸에 붙여넣기 하면 됩니다. 이게 OpenRouter의 힘이에요. 외국 모델이 대다수지만 한국어도 대체로 잘 됩니다.</p>
+<h3 id="7">7. 응답 구조와 토큰</h3>
+<p>응답에서 답변을 꺼내는 경로 <code>response.choices[0].message.content</code>는 <strong>OpenAI 라이브러리가 정한 규칙</strong>이라 그대로 따라야 합니다. 그리고 <strong>토큰</strong>은 AI가 처리하는 텍스트 단위인데, 대략 <strong>영어 4글자 또는 한글 1~2글자가 1토큰</strong>입니다. 유료 모델은 토큰당 비용이 드니, 비용을 아끼려고 일부러 한국어를 영어로 바꿔서 요청을 보내는 경우도 있어요. (지금은 무료 모델이라 크게 걱정 안 해도 됩니다.)</p>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LLM API</td>
+<td>코드로 AI에게 질문하고 답을 받는 통로</td>
+</tr>
+<tr>
+<td>OpenRouter</td>
+<td>여러 AI 모델을 하나의 API로 쓰게 해주는 서비스</td>
+</tr>
+<tr>
+<td>API 키</td>
+<td>나를 인증하는 비밀번호. 절대 유출 금지</td>
+</tr>
+<tr>
+<td>Colab Secrets</td>
+<td>키를 안전하게 저장·사용하는 Colab 기능</td>
+</tr>
+<tr>
+<td><code>base_url</code></td>
+<td>요청을 보낼 주소(OpenRouter 주소를 넣음)</td>
+</tr>
+<tr>
+<td><code>chat.completions.create</code></td>
+<td>AI를 호출하는 메서드</td>
+</tr>
+<tr>
+<td><code>choices[0].message.content</code></td>
+<td>답변 텍스트가 들어 있는 위치</td>
+</tr>
+<tr>
+<td>토큰</td>
+<td>AI 처리 단위(영어 4자/한글 1~2자 ≈ 1토큰), 과금 기준</td>
+</tr>
+<tr>
+<td>rate limit</td>
+<td>사용량 초과 에러. 다른 모델로 바꾸면 됨</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>"코드 한 줄(<code>model</code>)만 바꾸면 모델을 교체한다"는 OpenRouter의 구조는, 기획자에게 <strong>모델을 갈아 끼우며 품질·비용·속도를 비교 실험할 자유</strong>를 줍니다. 우리 게임 리뷰엔 어떤 모델이 한국어를 잘 잡고 싸게 먹히는지 직접 테스트해 BM(분석 운영비)을 설계할 수 있어요. 또 "무료로 시작 → 필요할 때 유료 전환"은 기능을 MVP로 검증하고 확장하는 기획 흐름과 똑같습니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>API 키를 코드에 직접 적지 마세요.</strong> 노트북을 공유하면 키가 통째로 새어 나가 비용 폭탄을 맞을 수 있습니다. <strong>Colab Secrets</strong>를 쓰세요.</li>
+<li><strong>무료 모델이 안 될 때는 고장이 아닙니다.</strong> <code>rate limit</code>이면 다른 무료 모델로 바꾸면 됩니다.</li>
+<li>(용어 정리) 전사에서 흔들린 표기 — <code>OpenRouter</code>, <code>OpenAI</code>, <code>Claude</code>(Anthropic), <code>Gemini</code>, <code>Grok</code>(xAI), <code>Secrets</code>(시크릿), <code>base_url</code>, <code>chat.completions.create</code>, <code>Mistral</code>, <code>rate limit error</code>.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li><strong>LLM API는 결국 코드로 AI에게 질문하는 것.</strong> 몇 줄이면 됩니다.</li>
+<li><strong>OpenRouter</strong>로 여러 모델을 하나의 API로 쓰고, <code>model</code> 한 줄만 바꿔 교체합니다.</li>
+<li><strong>API 키는 비밀번호</strong> — 코드에 직접 적지 말고 <strong>Colab Secrets</strong>로 안전하게 관리하세요.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>호출은 성공했습니다. 그런데 같은 질문이라도 <strong>어떻게 묻느냐</strong>에 따라 답변 품질이 완전히 달라져요. 다음 6강에서 AI에게 잘 질문하는 기술 <strong>프롬프트 엔지니어링</strong>(역할 부여·출력 형식 지정)을 배우고, 게임 리뷰 <strong>감성 분석 함수</strong>를 직접 만듭니다.</p>
+</article>
+<div class="pager"><a class="prev" href="4강.html"><span class="lbl">← 이전</span><span class="ttl">4강 — 샘플링과 대표성</span></a><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><a class="next" href="6강.html"><span class="lbl">다음 →</span><span class="ttl">6강 — 프롬프트 엔지니어링 기초</span></a></div>
+</div>
+</body>
+</html>

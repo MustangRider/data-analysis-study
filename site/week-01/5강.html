@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5강 — 데이터 수집의 경계 (can ≠ may)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-01 · 5강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="5-can-may">5강 — 데이터 수집의 경계 (can ≠ may)</h1>
+<blockquote>
+<p>5강 (25분 13초) · 강의에 없던 보강 설명은 "(보강)"으로 표시합니다.</p>
+</blockquote>
+<h2 id="_1">🎯 이 강의로 답할 질문</h2>
+<ul>
+<li>"기술적으로 가능하다"와 "해도 된다"는 왜 <strong>다를까요?</strong> (can vs may)</li>
+<li>무엇을 보고 <strong>수집해도 되는지 판단</strong>할까요?</li>
+<li>면접에서 "이 데이터 어디서 수집했나요?"라는 질문에 어떻게 답해야 할까요?</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<h3 id="1-can-may">1. can ≠ may</h3>
+<p>4강에서 코드 세 줄로 수천 개 리뷰를 가져올 수 있다는 걸 봤죠. 기술적으로 <strong>가능(can)</strong>합니다. 그런데 <strong>해도 되는 걸까요(may)?</strong>
+- <em>Can I do this?</em> = 할 능력이 있느냐(기술)
+- <em>May I do this?</em> = 해도 되느냐(허락)
+- 우리는 지금까지 "can"을 배웠고, 이 강에서 <strong>"may"</strong>를 배웁니다. 잘못하면 소송·계정 영구정지·회사 타격까지 <strong>실제로</strong> 일어나거든요.</p>
+<h3 id="2-3">2. 실제로 벌어진 3가지 사례</h3>
+<table>
+<thead>
+<tr>
+<th>사례</th>
+<th>무엇을 했나</th>
+<th>결과</th>
+<th>교훈</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>데이터 업체</strong></td>
+<td>공개된 프로필 정보를 대량 수집("어차피 공개잖아")</td>
+<td>약관 위반 소송, <strong>수천만 달러(수백억) 배상</strong></td>
+<td><strong>공개됨 ≠ 수집해도 됨</strong></td>
+</tr>
+<tr>
+<td><strong>연구자</strong></td>
+<td>학술 목적으로 SNS 데이터 대량 수집("연구니까 괜찮겠지")</td>
+<td>계정 영구정지 + <strong>논문 게재 거부</strong> + 윤리 위반 조사</td>
+<td><strong>목적이 좋아도 방법이 정당화되지 않음</strong></td>
+</tr>
+<tr>
+<td><strong>스타트업</strong></td>
+<td>경쟁사 가격을 자동 수집해 비교 서비스</td>
+<td><strong>업무방해 고소</strong> → 서비스 중단 → 투자 철회 → 폐업</td>
+<td>아이디어·기술이 좋아도 <strong>약관 미확인이면 끝</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="3">3. 이게 왜 <em>나</em>와 상관있을까요?</h3>
+<p>"나는 대기업도 연구자도 스타트업도 아닌데?"라고 생각하실 수 있어요. 그런데 세 관점 모두 해당됩니다.
+- <strong>개인</strong>: 약관을 위반하면 Steam 계정이 <strong>영구 차단</strong>될 수 있어요(산 게임이 다 날아갑니다). 심하면 법적 책임까지요.
+- <strong>취업(이게 중요해요)</strong>: 포트폴리오에 "게임 리뷰 감성 분석"을 넣으면 면접관이 <strong>"이 데이터 어디서 가져왔나요?"</strong>라고 묻습니다. "스크래핑했어요"라고 답하면 → "약관은 확인했나요?"에서 막혀요. 여기서 막히면 <strong>오히려 큰 마이너스</strong>입니다(기술력은 있는데 판단력이 없다는 인상을 주거든요).
+- <strong>회사</strong>: 입사 후 이런 실수를 하면 회사에 큰 손해를 끼칠 수 있어요. 그리고 <strong>"몰랐다"는 변명이 안 됩니다</strong>(법은 모르면 오히려 더 엄격할 때도 있어요).</p>
+<h3 id="4-4">4. 판단하는 4가지 요소</h3>
+<ol>
+<li><strong>이용약관(ToS, Terms of Service)</strong> — 가입할 때 "동의" 누르는 그 긴 문서예요. "자동화된 수집 금지", "상업적 사용 금지" 같은 게 적혀 있고, 어기면 <strong>계약 위반</strong>입니다.</li>
+<li><strong>API 정책</strong> — API 제공처의 개발자 문서(이렇게 쓰세요/하루 몇 번까지/이 목적으로만).</li>
+<li><strong>저작권법</strong> — 리뷰 텍스트도 작성자에게 저작권이 있는 <strong>저작물</strong>이에요. 함부로 복제·상업 이용하면 침해가 됩니다.</li>
+<li><strong>개인정보 보호법</strong> — 한국엔 개인정보보호법, 유럽엔 더 엄격한 <strong>GDPR</strong>이 있어요. 이름·프로필 사진도 개인정보일 수 있습니다.</li>
+</ol>
+<h3 id="5-5">5. 약관에서 찾을 5개 키워드</h3>
+<p>약관은 깁니다. 다 읽지 말고 <strong>키워드로 검색</strong>하세요(대부분 영어라 번역기를 써도 돼요. 중요한 건 <em>확인하는 습관</em>입니다).</p>
+<table>
+<thead>
+<tr>
+<th>키워드</th>
+<th>뜻</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>automated</code></td>
+<td>자동화된 접근 금지</td>
+</tr>
+<tr>
+<td><code>scraping</code></td>
+<td>스크래핑 금지</td>
+</tr>
+<tr>
+<td><code>crawling</code></td>
+<td>크롤링(웹 돌며 수집) 금지</td>
+</tr>
+<tr>
+<td><code>commercial use</code></td>
+<td>상업적 사용 관련(non-commercial only=비상업만)</td>
+</tr>
+<tr>
+<td><code>rate limit</code></td>
+<td>속도/횟수 제한</td>
+</tr>
+</tbody>
+</table>
+<p>예문을 같이 해석해 볼게요.
+- <em>"You agree not to use any automated system to access the Service"</em> → 봇·크롤러·스크립트로 접근하지 말라는 뜻이에요(사람이 브라우저로 보는 건 OK).
+- <em>"API access is limited to non-commercial, personal use only"</em> → 이 API로 <strong>돈 버는 서비스를 만들면 안 되고</strong>, 개인 학습·취미로만 쓰라는 거예요.</p>
+<h3 id="6-3">6. 수집 전 체크리스트 (3가지 카테고리)</h3>
+<ul>
+<li><strong>법적·정책</strong>: ① 약관이 자동 수집을 금지하는가 ② API 사용 정책을 확인했는가 ③ 상업적 이용 시 별도 라이선스가 필요한가</li>
+<li><strong>기술적</strong>: ④ rate limit을 확인했는가 ⑤ 내 코드가 그 제한을 지키는가(예: 요청 사이에 1초 대기)</li>
+<li><strong>윤리적</strong>: ⑥ 수집 목적이 명확한가("일단 다 긁자"는 금물이에요) ⑦ 필요 이상으로 긁지 않는가(100개면 충분한데 10만 개는 ✗)</li>
+</ul>
+<h3 id="7">7. 우리 과정엔 어떻게 적용될까요?</h3>
+<ul>
+<li><strong>목적</strong>: 학습·포트폴리오(비상업) → 안전한 영역입니다.</li>
+<li><strong>방법</strong>: <strong>공식 API만</strong>(steamreviews) 씁니다. 웹 스크래핑은 <strong>하지 않아요</strong>.</li>
+<li><strong>양</strong>: 수백~수천 건, 분석에 필요한 만큼만.</li>
+<li>가이드라인 네 줄로 정리할게요 — ① 공식 API만 ② 속도 제한 준수(요청 사이 1~2초) ③ 적정 수집량 ④ 비상업적.</li>
+</ul>
+<h3 id="8">8. 면접 모범답안 (그대로 외워두세요)</h3>
+<p>"데이터 수집에서 무엇을 고려했나요?"라는 질문엔 이 네 가지로 답하세요.
+1. 수집 전에 <strong>이용약관을 확인</strong>했습니다.
+2. <strong>API 호출 제한을 준수</strong>했습니다.
+3. 학습에 필요한 <strong>수준으로 수집량을 제한</strong>했습니다.
+4. <strong>"기술적 가능성과 윤리적 허용의 균형"</strong>을 배웠습니다. ← 면접관이 가장 듣고 싶어 하는 문장이에요.</p>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>can vs may</td>
+<td>할 수 있다(기술) vs 해도 된다(허락)</td>
+</tr>
+<tr>
+<td>이용약관(ToS)</td>
+<td>가입 시 동의하는 문서. 수집 가능 여부의 1차 기준</td>
+</tr>
+<tr>
+<td>GDPR</td>
+<td>유럽의 엄격한 개인정보 보호 규정</td>
+</tr>
+<tr>
+<td>rate limit</td>
+<td>API 요청 횟수 제한</td>
+</tr>
+<tr>
+<td>비상업적(non-commercial)</td>
+<td>돈 버는 목적이 아닌 용도</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>포트폴리오의 <strong>신뢰도</strong>는 결과물의 화려함이 아니라 <em>과정의 판단력</em>에서 나옵니다. "데이터 출처: Steam 공식 API, 약관 확인 완료, 학습 목적 비상업적"이라는 한 줄이 면접에서 <strong>"기술력 + 판단력을 모두 갖춘 사람"</strong>이라는 인상을 만들어요. 게임 업계는 IP·약관·퍼블리싱 계약에 민감하니, 이 감각은 기획자 직무에서도 그대로 자산이 됩니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>"공개된 정보 = 마음대로 써도 됨"이 절대 아닙니다.</strong> 사례 1이 정확히 그 착각으로 수백억을 물었어요.</li>
+<li><strong>"좋은 목적이면 봐준다"도 아니에요.</strong> 사례 2(학술)가 반례입니다.</li>
+<li>(용어) "이용약관"은 영어로 <strong>ToS(Terms of Service)</strong>, 유럽 개인정보 규정은 <strong>GDPR</strong>입니다.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li><strong>기술적 가능(can) ≠ 윤리·법적 허용(may).</strong> 실무에선 <em>해도 되냐</em>가 더 중요해요.</li>
+<li>판단 4요소(<strong>약관·API정책·저작권·개인정보</strong>) + 키워드 검색 + <strong>체크리스트 습관화</strong>.</li>
+<li>우리는 <strong>공식 API만·적정량·비상업</strong>으로 안전하게. 이 판단력이 곧 <strong>취업 경쟁력</strong>입니다.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>이론(수집 방법 + 경계)을 다 배웠어요. 이제 진짜 손으로 해봅시다 → <strong>6강: Steam 리뷰 수집 실습 + 파이썬 기초</strong>.</p>
+</article>
+<div class="pager"><a class="prev" href="4강.html"><span class="lbl">← 이전</span><span class="ttl">4강 — 데이터를 어디서 가져오는가 (수집 3가지 방법 &amp; Steam API)</span></a><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><a class="next" href="6강.html"><span class="lbl">다음 →</span><span class="ttl">6강 — 실습: Steam 리뷰 수집 + 파이썬 기초</span></a></div>
+</div>
+</body>
+</html>

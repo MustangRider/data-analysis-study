@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5강 — 에러 처리와 재시도 로직</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-03 · 5강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="5">5강 — 에러 처리와 재시도 로직</h1>
+<blockquote>
+<p>3주차 5강 / 23차시 (25분 51초)</p>
+</blockquote>
+<h2 id="_1">🎯 학습 목표</h2>
+<ul>
+<li>에러를 "막는 것"이 아니라 "나도 괜찮게 대응하는 것"이 핵심임을 이해할 수 있다</li>
+<li><strong>HTTP 상태 코드</strong>(200·400·429·500)로 실패 원인과 대응을 판단할 수 있다</li>
+<li><strong>재시도 가능한 에러</strong>와 <strong>불가능한 에러</strong>를 구분할 수 있다</li>
+<li><strong>지수 백오프</strong>와 <strong>로깅</strong>으로 끄떡없는 파이프라인을 완성할 수 있다</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<p>지난 시간(22차시) 배치 처리로 대량 데이터를 안전하게 나눴습니다. 그런데 <strong>API 호출 자체가 실패</strong>하면? 네트워크 문제, 서버 과부하, 요청 제한 — 호출은 항상 성공하지 않습니다. 오늘은 <strong>에러가 나도 끄떡없는 튼튼한 코드</strong>를 만들어 3일 차를 마무리합니다.</p>
+<h3 id="1">1. 마인드셋부터 — 에러는 반드시 난다</h3>
+<p>에러가 나면 보통 "내 코드가 잘못됐나? 어제는 됐는데 왜?" 하고 당황합니다. 올바른 생각은 이렇습니다. <strong>네트워크는 원래 불안정하고, 서버는 가끔 과부하가 걸립니다. 에러는 "언제 날지"가 아니라 "반드시 난다"고 전제해야 합니다.</strong></p>
+<p><strong>운전</strong>으로 비유해 봅시다. 사고가 안 나길 바라며 안전벨트를 안 매는 사람과, 사고 날 수도 있으니 매는 사람이 있죠. API 호출도 같습니다. 중요한 건 에러가 나냐 안 나냐가 아니라, <strong>에러가 나면 어떻게 대응하느냐</strong>입니다. 실무에서 한 번씩 겪는 일들이에요.</p>
+<ul>
+<li><strong>금요일 밤의 비극</strong> — 밤 10시에 분석을 돌려놓고 퇴근. 토요일 아침에 보니 새벽 2시에 멈춰 있음(API 서버 점검 시간이었음). 4시간 치 결과가 날아감.</li>
+<li><strong>고객 시연 중 사고</strong> — 중요한 데모에서 실행 버튼을 누르자마자 빨간 에러(레이트 리미트 초과). 신뢰도가 떨어지고 계약이 흔들림.</li>
+<li><strong>원인 미상의 실패</strong> — 어제 되던 코드가 오늘 안 됨. 그런데 <strong>로그가 없어서</strong> 왜 안 되는지 모름.</li>
+</ul>
+<p>예외 처리가 없으면 API 호출이 실패하는 순간 <strong>프로그램이 그냥 멈춥니다.</strong> 처리 중이던 배치 결과가 날아가고, 왜·어디서 실패했는지도 모르며, 재시작도 비효율적이죠. 그래서 <strong>에러를 예상하고 대비</strong>하는 게 핵심입니다.</p>
+<h3 id="2-http">2. HTTP 상태 코드 — 숫자만 봐도 원인을 안다</h3>
+<p>API 응답에는 <strong>상태 코드</strong>가 따라옵니다. 서버의 응답 상태를 숫자로 표현한 것이죠. <strong>레스토랑 주문</strong>으로 비유하면 쉽습니다.</p>
+<table>
+<thead>
+<tr>
+<th>코드</th>
+<th>레스토랑 비유</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>200</strong></td>
+<td>"주문하신 음식 나왔습니다"</td>
+<td>성공</td>
+</tr>
+<tr>
+<td><strong>400</strong></td>
+<td>"손님, 그런 메뉴 없어요"</td>
+<td>잘못된 요청(클라이언트=손님 잘못)</td>
+</tr>
+<tr>
+<td><strong>429</strong></td>
+<td>"너무 빨리 주문하셔서 잠깐 기다려 주세요"</td>
+<td>요청을 너무 많이 보냄</td>
+</tr>
+<tr>
+<td><strong>500</strong></td>
+<td>"죄송해요, 주방에 문제가 생겼어요"</td>
+<td>서버 문제(손님 잘못 아님)</td>
+</tr>
+</tbody>
+</table>
+<p>외울 건 큰 분류뿐입니다 — <strong>200번대는 정상, 400번대는 클라이언트(사용자) 문제, 500번대는 서버 문제.</strong> 400번대와 500번대는 <strong>대응 방법이 다르기</strong> 때문에 이 구분이 중요합니다. 앞자리 숫자만 봐도 왜 실패했는지 감이 오죠.</p>
+<h3 id="3-vs">3. 재시도 가능한 에러 vs 불가능한 에러</h3>
+<p>상태 코드에 따라 대응이 갈립니다.</p>
+<table>
+<thead>
+<tr>
+<th>유형</th>
+<th>코드</th>
+<th>의미</th>
+<th>재시도?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rate Limit</td>
+<td>429</td>
+<td>요청이 너무 많음</td>
+<td><strong>가능</strong> (잠깐 기다렸다가)</td>
+</tr>
+<tr>
+<td>Server Error</td>
+<td>500, 502, 503, 504</td>
+<td>서버 문제</td>
+<td><strong>가능</strong> (일시적일 수 있음)</td>
+</tr>
+<tr>
+<td>Timeout</td>
+<td>—</td>
+<td>응답 시간 초과</td>
+<td><strong>가능</strong> (네트워크 지연)</td>
+</tr>
+<tr>
+<td>Bad Request</td>
+<td>400</td>
+<td>요청 형식 오류</td>
+<td>불가능 (요청을 고쳐야 함)</td>
+</tr>
+<tr>
+<td>Unauthorized</td>
+<td>401</td>
+<td>인증 실패</td>
+<td>불가능 (API 키 확인)</td>
+</tr>
+<tr>
+<td>Forbidden</td>
+<td>403</td>
+<td>권한 없음</td>
+<td>불가능 (접근 권한 확인)</td>
+</tr>
+<tr>
+<td>Not Found</td>
+<td>404</td>
+<td>엔드포인트 없음</td>
+<td>불가능 (URL 확인)</td>
+</tr>
+<tr>
+<td>Unprocessable</td>
+<td>422</td>
+<td>데이터 형식 오류</td>
+<td>불가능 (입력 데이터 수정)</td>
+</tr>
+</tbody>
+</table>
+<p>원리는 간단합니다. <strong>시간이 지나면 풀릴 문제(429·5xx·타임아웃)는 재시도</strong>하고, <strong>요청 자체가 잘못된 문제(4xx 대부분)는 몇 번을 해도 똑같이 실패</strong>하므로 바로 건너뛰고 <strong>로그에 기록</strong>합니다. 코드로 옮기면 "재시도 가능한 코드 집합"을 두고 판별하면 돼요.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>RETRYABLE_STATUS_CODES <span style="color: #666">=</span> {<span style="color: #666">429</span>, <span style="color: #666">500</span>, <span style="color: #666">502</span>, <span style="color: #666">503</span>, <span style="color: #666">504</span>}   <span style="color: #3D7B7B; font-style: italic"># 재시도해 볼 만한 코드들</span>
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">is_retryable_error</span>(status_code):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;이 상태 코드가 재시도 가능한 에러인지 판단.&quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">return</span> status_code <span style="color: #A2F; font-weight: bold">in</span> RETRYABLE_STATUS_CODES
+
+<span style="color: #008000; font-weight: bold">for</span> code <span style="color: #A2F; font-weight: bold">in</span> [<span style="color: #666">200</span>, <span style="color: #666">400</span>, <span style="color: #666">429</span>, <span style="color: #666">500</span>, <span style="color: #666">401</span>]:
+    <span style="color: #008000">print</span>(code, <span style="color: #BA2121">&quot;→&quot;</span>, <span style="color: #BA2121">&quot;재시도 가능&quot;</span> <span style="color: #008000; font-weight: bold">if</span> is_retryable_error(code) <span style="color: #008000; font-weight: bold">else</span> <span style="color: #BA2121">&quot;재시도 불가&quot;</span>)
+</code></pre></div>
+
+<h3 id="4">4. 지수 백오프 — 점점 더 기다리며 재시도</h3>
+<p>재시도를 한다면, <strong>얼마나 기다렸다가</strong> 할까요? <strong>지수 백오프(Exponential Backoff)</strong>는 재시도할 때마다 대기 시간을 <strong>점점 늘리는</strong> 전략입니다.</p>
+<p><strong>전화 다시 걸기</strong>로 비유해 봅시다. 상대가 안 받는데 1초마다 다시 걸면 서로 피곤하죠. 1분 뒤, 안 되면 2분 뒤, 또 안 되면 5분 뒤 — 이렇게 간격을 늘리면 상대가 바쁠 때 여유를 줍니다. API도 같아요. 에러 나면 1초 → 2초 → 4초 → 8초로 늘립니다. <strong>왜냐하면 서버가 과부하 상태일 수 있고, 바로바로 재시도하면 부담만 더 주기 때문</strong>입니다. 간격을 늘리면 <strong>서버가 회복할 시간</strong>을 줍니다.</p>
+<p>공식은 <code>대기시간 = 기본시간 × 2^(시도횟수)</code>입니다. "지수(exponential)"라는 이름이 여기서 나왔죠. 무한정 기다릴 순 없으니 <strong>최대 재시도 횟수(보통 3~5회)</strong>도 정해 둡니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">random</span>
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">calculate_backoff</span>(attempt, base_delay<span style="color: #666">=1</span>, max_delay<span style="color: #666">=60</span>):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;지수 백오프 대기 시간(초)을 계산. attempt는 0부터 시작.</span>
+<span style="color: #BA2121; font-style: italic">    1, 2, 4, 8, 16 ... 으로 늘어나되 max_delay를 넘지 않음.&quot;&quot;&quot;</span>
+    delay <span style="color: #666">=</span> base_delay <span style="color: #666">*</span> (<span style="color: #666">2</span> <span style="color: #666">**</span> attempt)            <span style="color: #3D7B7B; font-style: italic"># 핵심: 2의 거듭제곱으로 증가</span>
+    jitter <span style="color: #666">=</span> random<span style="color: #666">.</span>uniform(<span style="color: #666">0</span>, <span style="color: #666">0.5</span>) <span style="color: #666">*</span> delay        <span style="color: #3D7B7B; font-style: italic"># 약간의 무작위(여러 요청이 동시에 몰리는 걸 분산)</span>
+    <span style="color: #008000; font-weight: bold">return</span> <span style="color: #008000">min</span>(delay <span style="color: #666">+</span> jitter, max_delay)          <span style="color: #3D7B7B; font-style: italic"># 상한선 적용</span>
+
+total <span style="color: #666">=</span> <span style="color: #666">0</span>
+<span style="color: #008000; font-weight: bold">for</span> attempt <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">range</span>(<span style="color: #666">5</span>):
+    d <span style="color: #666">=</span> calculate_backoff(attempt)
+    total <span style="color: #666">+=</span> d
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;시도 </span><span style="color: #A45A77; font-weight: bold">{</span>attempt<span style="color: #666">+1</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">: </span><span style="color: #A45A77; font-weight: bold">{</span>d<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">.1f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">초 대기 (누적 </span><span style="color: #A45A77; font-weight: bold">{</span>total<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">.1f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">초)&quot;</span>)
+<span style="color: #3D7B7B; font-style: italic"># 예시: 1.2 / 2.1 / 4.7 / 9.0 / 16.4 초 (jitter로 매번 조금씩 다름)</span>
+</code></pre></div>
+
+<p><code>jitter</code>(약간의 무작위)는 여러 클라이언트가 <strong>동시에 똑같은 타이밍</strong>에 재시도해 서버를 다시 덮치는 걸 막아 줍니다. 같은 원리를 우리는 일상에서도 씁니다 — 택배 재배송(5분마다 X, 1시간 뒤 → 내일 → 무인함), 친구 집 초인종(1초마다 X, 잠깐 뒤 문자 → 더 뒤에 연락). 그리고 22차시의 <strong>중간 저장</strong>도 사실 게임의 세이브 포인트와 같은 발상이었죠.</p>
+<h3 id="5_1">5. 재시도가 포함된 안전한 호출</h3>
+<p>이제 <code>try/except</code>로 호출을 감싸고, 에러 종류를 판별해 재시도 로직을 넣습니다. 직접 만든 예외 클래스(<code>APIError</code>)로 에러 정보를 깔끔하게 담아 둡니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">time</span>
+
+<span style="color: #008000; font-weight: bold">class</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">APIError</span>(<span style="color: #CB3F38; font-weight: bold">Exception</span>):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;API 호출 관련 커스텀 예외 — 상태 코드와 재시도 가능 여부를 함께 담는다.&quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">__init__</span>(<span style="color: #008000">self</span>, message, status_code<span style="color: #666">=</span><span style="color: #008000; font-weight: bold">None</span>, retryable<span style="color: #666">=</span><span style="color: #008000; font-weight: bold">False</span>):
+        <span style="color: #008000">self</span><span style="color: #666">.</span>message <span style="color: #666">=</span> message
+        <span style="color: #008000">self</span><span style="color: #666">.</span>status_code <span style="color: #666">=</span> status_code
+        <span style="color: #008000">self</span><span style="color: #666">.</span>retryable <span style="color: #666">=</span> retryable
+        <span style="color: #008000">super</span>()<span style="color: #666">.</span><span style="color: #00F">__init__</span>(message)
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">call_llm_with_retry</span>(system_prompt, user_message, max_retries<span style="color: #666">=3</span>):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;재시도 로직이 포함된 LLM 호출. 성공 시 응답 텍스트, 끝내 실패 시 APIError.&quot;&quot;&quot;</span>
+    last_error <span style="color: #666">=</span> <span style="color: #008000; font-weight: bold">None</span>
+    <span style="color: #008000; font-weight: bold">for</span> attempt <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">range</span>(max_retries <span style="color: #666">+</span> <span style="color: #666">1</span>):       <span style="color: #3D7B7B; font-style: italic"># 최초 1회 + 재시도 max_retries회</span>
+        <span style="color: #008000; font-weight: bold">try</span>:
+            response <span style="color: #666">=</span> client<span style="color: #666">.</span>chat<span style="color: #666">.</span>completions<span style="color: #666">.</span>create(
+                model<span style="color: #666">=</span>MODEL,
+                messages<span style="color: #666">=</span>[
+                    {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;system&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: system_prompt},
+                    {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;user&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: user_message},
+                ],
+                timeout<span style="color: #666">=30</span>,                       <span style="color: #3D7B7B; font-style: italic"># 응답이 30초를 넘으면 타임아웃</span>
+            )
+            <span style="color: #008000; font-weight: bold">return</span> response<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content
+        <span style="color: #008000; font-weight: bold">except</span> <span style="color: #CB3F38; font-weight: bold">Exception</span> <span style="color: #008000; font-weight: bold">as</span> e:
+            last_error <span style="color: #666">=</span> e
+            text <span style="color: #666">=</span> <span style="color: #008000">str</span>(e)<span style="color: #666">.</span>lower()
+            <span style="color: #3D7B7B; font-style: italic"># 에러 메시지로 종류를 판별 (재시도 가능한가?)</span>
+            retryable <span style="color: #666">=</span> (<span style="color: #BA2121">&quot;429&quot;</span> <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">str</span>(e) <span style="color: #A2F; font-weight: bold">or</span> <span style="color: #BA2121">&quot;rate&quot;</span> <span style="color: #A2F; font-weight: bold">in</span> text                    <span style="color: #3D7B7B; font-style: italic"># 레이트 리미트</span>
+                         <span style="color: #A2F; font-weight: bold">or</span> <span style="color: #008000">any</span>(c <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">str</span>(e) <span style="color: #008000; font-weight: bold">for</span> c <span style="color: #A2F; font-weight: bold">in</span> [<span style="color: #BA2121">&quot;500&quot;</span>, <span style="color: #BA2121">&quot;502&quot;</span>, <span style="color: #BA2121">&quot;503&quot;</span>, <span style="color: #BA2121">&quot;504&quot;</span>])  <span style="color: #3D7B7B; font-style: italic"># 서버 오류</span>
+                         <span style="color: #A2F; font-weight: bold">or</span> <span style="color: #BA2121">&quot;timeout&quot;</span> <span style="color: #A2F; font-weight: bold">in</span> text)                                <span style="color: #3D7B7B; font-style: italic"># 타임아웃</span>
+            <span style="color: #008000; font-weight: bold">if</span> retryable <span style="color: #A2F; font-weight: bold">and</span> attempt <span style="color: #666">&lt;</span> max_retries:
+                delay <span style="color: #666">=</span> calculate_backoff(attempt)
+                <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;  에러(시도 </span><span style="color: #A45A77; font-weight: bold">{</span>attempt<span style="color: #666">+1</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">/</span><span style="color: #A45A77; font-weight: bold">{</span>max_retries<span style="color: #666">+1</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">): </span><span style="color: #A45A77; font-weight: bold">{</span>delay<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">.1f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">초 후 재시도&quot;</span>)
+                time<span style="color: #666">.</span>sleep(delay)
+            <span style="color: #008000; font-weight: bold">else</span>:
+                <span style="color: #008000; font-weight: bold">break</span>                              <span style="color: #3D7B7B; font-style: italic"># 재시도 불가 or 횟수 초과 → 중단</span>
+    <span style="color: #008000; font-weight: bold">raise</span> APIError(<span style="color: #BA2121">f&quot;API 호출 실패: </span><span style="color: #A45A77; font-weight: bold">{</span>last_error<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+</code></pre></div>
+
+<p>흐름은 이렇습니다 — <strong>호출 시도 → 성공하면 반환 / 실패하면 재시도 가능한지 판단 → 가능하면 백오프 후 다시, 불가능하거나 횟수 초과면 실패로 종료.</strong> 재시도 가능한 에러만 다시 시도하고 나머지는 즉시 포기하는 게 포인트예요.</p>
+<h3 id="6">6. 로깅 — 왜 실패했는지 남기기</h3>
+<p>규모가 큰 프로그램에서는 <strong>에러가 어디서 났는지 찾는 게 정말 어렵습니다.</strong> 그래서 성공·실패를 기록하는 <strong>로깅</strong>이 프로덕션급 프로그램에서 매우 중요합니다. 처리 결과를 누적하고 파일로 저장하는 로거 클래스를 둡니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">datetime</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> datetime
+<span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">json</span>
+
+<span style="color: #008000; font-weight: bold">class</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">ProcessingLogger</span>:
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;처리 결과(성공/실패)를 기록하고 요약·저장하는 로거.&quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">__init__</span>(<span style="color: #008000">self</span>, log_file<span style="color: #666">=</span><span style="color: #BA2121">&#39;processing_log.json&#39;</span>):
+        <span style="color: #008000">self</span><span style="color: #666">.</span>log_file <span style="color: #666">=</span> log_file
+        <span style="color: #008000">self</span><span style="color: #666">.</span>logs <span style="color: #666">=</span> []
+        <span style="color: #008000">self</span><span style="color: #666">.</span>success_count <span style="color: #666">=</span> <span style="color: #666">0</span>
+        <span style="color: #008000">self</span><span style="color: #666">.</span>failure_count <span style="color: #666">=</span> <span style="color: #666">0</span>
+
+    <span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">log_success</span>(<span style="color: #008000">self</span>, item_id, result):
+        <span style="color: #008000">self</span><span style="color: #666">.</span>logs<span style="color: #666">.</span>append({<span style="color: #BA2121">&quot;timestamp&quot;</span>: datetime<span style="color: #666">.</span>now()<span style="color: #666">.</span>isoformat(),
+                          <span style="color: #BA2121">&quot;status&quot;</span>: <span style="color: #BA2121">&quot;success&quot;</span>, <span style="color: #BA2121">&quot;item_id&quot;</span>: item_id,
+                          <span style="color: #BA2121">&quot;result_preview&quot;</span>: <span style="color: #008000">str</span>(result)[:<span style="color: #666">100</span>]})
+        <span style="color: #008000">self</span><span style="color: #666">.</span>success_count <span style="color: #666">+=</span> <span style="color: #666">1</span>
+
+    <span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">log_failure</span>(<span style="color: #008000">self</span>, item_id, error_message, input_data<span style="color: #666">=</span><span style="color: #008000; font-weight: bold">None</span>):
+        <span style="color: #008000">self</span><span style="color: #666">.</span>logs<span style="color: #666">.</span>append({<span style="color: #BA2121">&quot;timestamp&quot;</span>: datetime<span style="color: #666">.</span>now()<span style="color: #666">.</span>isoformat(),
+                          <span style="color: #BA2121">&quot;status&quot;</span>: <span style="color: #BA2121">&quot;failure&quot;</span>, <span style="color: #BA2121">&quot;item_id&quot;</span>: item_id,
+                          <span style="color: #BA2121">&quot;error&quot;</span>: error_message,
+                          <span style="color: #BA2121">&quot;input_preview&quot;</span>: <span style="color: #008000">str</span>(input_data)[:<span style="color: #666">100</span>] <span style="color: #008000; font-weight: bold">if</span> input_data <span style="color: #008000; font-weight: bold">else</span> <span style="color: #008000; font-weight: bold">None</span>})
+        <span style="color: #008000">self</span><span style="color: #666">.</span>failure_count <span style="color: #666">+=</span> <span style="color: #666">1</span>
+
+    <span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">save</span>(<span style="color: #008000">self</span>):
+        total <span style="color: #666">=</span> <span style="color: #008000">len</span>(<span style="color: #008000">self</span><span style="color: #666">.</span>logs)
+        <span style="color: #008000; font-weight: bold">with</span> <span style="color: #008000">open</span>(<span style="color: #008000">self</span><span style="color: #666">.</span>log_file, <span style="color: #BA2121">&#39;w&#39;</span>, encoding<span style="color: #666">=</span><span style="color: #BA2121">&#39;utf-8&#39;</span>) <span style="color: #008000; font-weight: bold">as</span> f:
+            json<span style="color: #666">.</span>dump({<span style="color: #BA2121">&quot;summary&quot;</span>: {<span style="color: #BA2121">&quot;total&quot;</span>: total,
+                                   <span style="color: #BA2121">&quot;success&quot;</span>: <span style="color: #008000">self</span><span style="color: #666">.</span>success_count,
+                                   <span style="color: #BA2121">&quot;failure&quot;</span>: <span style="color: #008000">self</span><span style="color: #666">.</span>failure_count},
+                       <span style="color: #BA2121">&quot;logs&quot;</span>: <span style="color: #008000">self</span><span style="color: #666">.</span>logs}, f, ensure_ascii<span style="color: #666">=</span><span style="color: #008000; font-weight: bold">False</span>, indent<span style="color: #666">=2</span>)
+
+    <span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">print_summary</span>(<span style="color: #008000">self</span>):
+        total <span style="color: #666">=</span> <span style="color: #008000">len</span>(<span style="color: #008000">self</span><span style="color: #666">.</span>logs) <span style="color: #A2F; font-weight: bold">or</span> <span style="color: #666">1</span>
+        <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;총 </span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #008000">len</span>(<span style="color: #008000">self</span><span style="color: #666">.</span>logs)<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">건 / 성공 </span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #008000">self</span><span style="color: #666">.</span>success_count<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> &quot;</span>
+              <span style="color: #BA2121">f&quot;(</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #008000">self</span><span style="color: #666">.</span>success_count<span style="color: #666">/</span>total<span style="color: #666">*100</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">.1f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%) / 실패 </span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #008000">self</span><span style="color: #666">.</span>failure_count<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+</code></pre></div>
+
+<p>나중에 로그 파일을 열면 <strong>언제·어떤 에러가·어떤 리뷰에서</strong> 났는지 다 보입니다. 그래야 실패 원인을 분석하고 고칠 수 있죠. (파이썬 표준 <code>logging</code> 모듈로 <code>logging.warning(...)</code>을 파일에 남기는 방법도 있습니다 — 원리는 같아요.)</p>
+<h3 id="7">7. 전체 통합 — 배치 + 재시도 + 로깅</h3>
+<p>이제 22차시의 배치/체크포인트에 오늘의 재시도·로깅을 결합하면 <strong>거의 완전한 수준</strong>의 파이프라인이 됩니다. 각 리뷰를 "안전하게" 분석하는 함수를 만들고, 배치 루프에서 호출합니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">analyze_review_safe</span>(review, logger):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;재시도 포함 분석. 성공하면 결과, 실패하면 None(+로그 기록).&quot;&quot;&quot;</span>
+    system_prompt <span style="color: #666">=</span> (<span style="color: #BA2121">&#39;당신은 게임 리뷰 분석가입니다. &#39;</span>
+                     <span style="color: #BA2121">&#39;JSON으로만 응답: {&quot;sentiment&quot;: &quot;positive/negative/neutral&quot;, &quot;keywords&quot;: [&quot;...&quot;]}&#39;</span>)
+    <span style="color: #008000; font-weight: bold">try</span>:
+        raw <span style="color: #666">=</span> call_llm_with_retry(system_prompt, <span style="color: #BA2121">f&quot;분석해주세요: </span><span style="color: #A45A77; font-weight: bold">{</span>review[<span style="color: #BA2121">&#39;text&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>, max_retries<span style="color: #666">=2</span>)
+        result <span style="color: #666">=</span> json<span style="color: #666">.</span>loads(clean_json_response(raw))   <span style="color: #3D7B7B; font-style: italic"># 3강의 정제 함수 재사용</span>
+        result[<span style="color: #BA2121">&#39;review_id&#39;</span>] <span style="color: #666">=</span> review[<span style="color: #BA2121">&#39;id&#39;</span>]
+        logger<span style="color: #666">.</span>log_success(review[<span style="color: #BA2121">&#39;id&#39;</span>], result)
+        <span style="color: #008000; font-weight: bold">return</span> result
+    <span style="color: #008000; font-weight: bold">except</span> (APIError, json<span style="color: #666">.</span>JSONDecodeError) <span style="color: #008000; font-weight: bold">as</span> e:
+        logger<span style="color: #666">.</span>log_failure(review[<span style="color: #BA2121">&#39;id&#39;</span>], <span style="color: #008000">str</span>(e), review[<span style="color: #BA2121">&#39;text&#39;</span>])
+        <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;  리뷰 </span><span style="color: #A45A77; font-weight: bold">{</span>review[<span style="color: #BA2121">&#39;id&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> 실패: </span><span style="color: #A45A77; font-weight: bold">{</span>e<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+        <span style="color: #008000; font-weight: bold">return</span> <span style="color: #008000; font-weight: bold">None</span>
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">process_reviews_robust</span>(reviews, batch_size<span style="color: #666">=2</span>):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;배치 + 재시도 + 로깅을 결합한 안정적 처리.&quot;&quot;&quot;</span>
+    logger <span style="color: #666">=</span> ProcessingLogger(<span style="color: #BA2121">&#39;review_processing_log.json&#39;</span>)
+    results <span style="color: #666">=</span> []
+    <span style="color: #008000; font-weight: bold">for</span> batch <span style="color: #A2F; font-weight: bold">in</span> tqdm(<span style="color: #008000">list</span>(chunk_list(reviews, batch_size)), desc<span style="color: #666">=</span><span style="color: #BA2121">&quot;배치 처리 중&quot;</span>):
+        <span style="color: #008000; font-weight: bold">for</span> review <span style="color: #A2F; font-weight: bold">in</span> batch:
+            r <span style="color: #666">=</span> analyze_review_safe(review, logger)
+            <span style="color: #008000; font-weight: bold">if</span> r:
+                results<span style="color: #666">.</span>append(r)        <span style="color: #3D7B7B; font-style: italic"># 실패(None)는 건너뛰고 나머지는 계속</span>
+            time<span style="color: #666">.</span>sleep(<span style="color: #666">0.5</span>)
+    logger<span style="color: #666">.</span>save()
+    logger<span style="color: #666">.</span>print_summary()
+    <span style="color: #008000; font-weight: bold">return</span> results, logger
+</code></pre></div>
+
+<p>한 건이 실패해도 <code>None</code>을 반환하고 로그에 남길 뿐, <strong>전체는 멈추지 않고 계속</strong> 돕니다. 이게 22차시 체크포인트(완료분 보존)와 합쳐지면, 대량 분석을 밤새 돌려도 안심할 수 있는 구조가 됩니다.</p>
+<blockquote>
+<p><strong>OpenRouter 무료 한도 참고:</strong> 무료 모델은 하루 약 <strong>50회</strong> 호출로 제한됩니다. 실습 중 이 한도를 넘겨 멈출 수 있는데, 당황하지 말고 다음 날 다시 하거나, 집중적으로 테스트하려면 <strong>1회 10달러 결제 시 하루 1,000회</strong>로 늘어납니다. (이런 한도 초과도 위 재시도/로깅으로 깔끔히 기록됩니다.)</p>
+</blockquote>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HTTP 상태 코드</td>
+<td>응답 상태를 나타내는 숫자. 200 성공 / 400 클라이언트 / 500 서버</td>
+</tr>
+<tr>
+<td>429 (Rate Limit)</td>
+<td>요청이 너무 많음. 기다렸다 재시도 가능</td>
+</tr>
+<tr>
+<td>재시도 가능/불가</td>
+<td>429·5xx·타임아웃은 재시도, 4xx 대부분은 건너뛰고 로그</td>
+</tr>
+<tr>
+<td>지수 백오프</td>
+<td>재시도 간격을 1·2·4·8초로 늘려 서버에 회복 시간을 줌</td>
+</tr>
+<tr>
+<td>jitter</td>
+<td>동시 재시도 충돌을 막는 약간의 무작위 대기</td>
+</tr>
+<tr>
+<td><code>try</code>/<code>except</code></td>
+<td>에러를 잡아 프로그램이 멈추지 않게 하는 예외 처리</td>
+</tr>
+<tr>
+<td>커스텀 예외(<code>APIError</code>)</td>
+<td>에러 정보(코드·재시도 여부)를 담는 직접 만든 예외 클래스</td>
+</tr>
+<tr>
+<td>로깅(logging)</td>
+<td>성공·실패를 기록해 나중에 원인 분석. 프로덕션의 필수</td>
+</tr>
+<tr>
+<td>방어적 프로그래밍</td>
+<td>"에러는 난다"고 전제하고 미리 대비하는 코딩 태도</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>에러 처리는 분석 파이프라인의 <strong>운영 안정성(SLA)</strong> 그 자체입니다. 리뷰 자동 분석을 라이브 대시보드에 물려 두려면, 어쩌다 한 번 나는 429·타임아웃에 전체가 멈춰선 안 되죠 — 재시도·로깅이 곧 <em>"새벽에 깨지 않아도 되는 시스템"</em>을 만듭니다. 발상 자체도 기획과 닮았습니다. 지수 백오프는 <em>서버가 힘들 때 부하를 빼주는</em> 설계인데, 이건 게임에서 <em>서버 혼잡 시 매칭·접속을 점진적으로 푸는</em> 운영과 같은 사고예요. 그리고 로그는 <strong>사후 분석 데이터</strong> — 어떤 입력에서 왜 실패했는지가 남아야, 분석 파이프라인 자체를 개선할 수 있습니다. "에러가 안 나길 바라는" 게 아니라 "에러가 나도 굴러가게" 설계하는 태도가, 일회성 스크립트와 운영 가능한 제품을 가릅니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>모든 에러를 재시도하면 안 됩니다.</strong> 400·401·404는 다시 해도 똑같이 실패합니다. 건너뛰고 로그를 남기세요.</li>
+<li><strong>재시도를 즉시·무한히 하면 더 나빠집니다.</strong> 서버 과부하를 키웁니다. 지수 백오프 + 최대 횟수(3~5회)가 정답.</li>
+<li><strong><code>try/except</code>로 잡고 조용히 넘기면 안 됩니다.</strong> 반드시 <strong>로그를 남겨야</strong> 나중에 원인을 압니다.</li>
+<li><strong>에러를 0으로 만들 순 없습니다.</strong> 목표는 "에러 없음"이 아니라 "에러가 나도 안전하게 처리됨"입니다.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li>에러는 <strong>반드시 난다</strong>고 전제하세요. 핵심은 막는 게 아니라 <strong>나도 괜찮게 대응</strong>하는 것(방어적 프로그래밍).</li>
+<li><strong>상태 코드</strong>로 원인을 읽고(2xx/4xx/5xx), <strong>재시도 가능(429·5xx·타임아웃)</strong>만 <strong>지수 백오프</strong>로 다시 시도합니다.</li>
+<li><strong>로깅</strong>으로 실패를 기록해 분석·개선하고, 배치·체크포인트와 합쳐 <strong>끄떡없는 파이프라인</strong>을 완성합니다.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>이로써 3일 차 학습이 끝났습니다. 프롬프트 고급 기술(1강) → 감성 심화(2강) → 키워드·토픽(3강) → 배치 처리(4강) → 에러 처리(5강)까지, <strong>LLM으로 리뷰를 분석하는 본론</strong>을 모두 다뤘어요. 다음 24차시는 <strong>마무리 프로젝트(영상 없음) — 대량 분석 실행</strong>입니다. 지금까지의 배치 처리·에러 처리·로깅을 통합해 <strong>실제 리뷰 데이터 전체</strong>를 분석하고, 결과를 저장하고 통계까지 확인합니다. 여기서 나온 구조화된 분석 결과가, 곧 4일 차부터 만들 <strong>대시보드/앱</strong>의 입력이 됩니다.</p>
+</article>
+<div class="pager"><a class="prev" href="4강.html"><span class="lbl">← 이전</span><span class="ttl">4강 — 배치 처리와 효율화</span></a><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><span class="spacer"></span></div>
+</div>
+</body>
+</html>

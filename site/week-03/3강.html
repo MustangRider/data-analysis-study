@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3강 — 키워드 추출과 토픽 분석</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-03 · 3강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="3">3강 — 키워드 추출과 토픽 분석</h1>
+<blockquote>
+<p>3주차 3강 / 20차시 (26분 7초)</p>
+</blockquote>
+<h2 id="_1">🎯 학습 목표</h2>
+<ul>
+<li>미리 정의한 에스펙트(탑다운)의 한계를 이해하고 키워드 추출(바텀업)로 보완할 수 있다</li>
+<li>리뷰에서 <strong>키워드를 직접 추출</strong>할 때 전통 NLP 대신 LLM을 쓰는 이유를 설명할 수 있다</li>
+<li>흩어진 키워드를 <strong>토픽으로 묶고</strong>, <strong>빈도</strong>로 우선순위를 매길 수 있다</li>
+<li>매번 반복되는 호출·정제 코드를 <strong>헬퍼 함수</strong>로 묶어 재사용할 수 있다</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<p>지난 시간(19차시) ABSA로 "graphics: 긍정, performance: 부정"처럼 분석했죠. 그런데 에스펙트는 <strong>우리가 미리 정의한</strong> 것입니다. 만약 유저 100명이 <strong>"로딩 시간이 너무 느리다"</strong>고 말하는데 우리 에스펙트 목록에 없다면? 놓칩니다. 오늘은 리뷰에서 <strong>키워드를 직접 발견하는</strong> 바텀업 접근을 배웁니다.</p>
+<h3 id="1">1. 탑다운의 한계, 바텀업의 등장</h3>
+<ul>
+<li><strong>탑다운(top-down)</strong>: 분석가가 그래픽·게임플레이·스토리… 카테고리를 <strong>먼저 정해놓고</strong> 분석. 일관성은 좋지만 <strong>정의 안 한 주제는 놓칩니다.</strong></li>
+<li><strong>바텀업(bottom-up)</strong>: 리뷰에서 키워드를 <strong>먼저 뽑고</strong>, 뽑다 보니 비슷한 것끼리 묶여 주제가 드러남. <strong>예상 못한 주제도 발견</strong>할 수 있습니다.</li>
+</ul>
+<p>오늘 배울 세 기법은 모두 바텀업입니다: ① <strong>키워드 추출</strong> → ② <strong>토픽 클러스터링</strong> → ③ <strong>빈도 분석</strong>. 최종 목표는 이런 인사이트예요 — <em>"리뷰 1,000개에서 'bugs'가 234회 언급됨. Technical 토픽이 전체의 37%."</em></p>
+<h3 id="2-llm">2. 키워드 추출이란 — 그리고 왜 LLM인가</h3>
+<p><strong>독후감 요약</strong>으로 비유해 봅시다. 책 한 권을 읽고 핵심 단어 다섯 개(마법, 우정, 성장, 호그와트…)로 요약하면 그 책이 뭔지 대강 압니다. 리뷰도 마찬가지예요. <code>버그</code>·<code>DLC</code>·<code>가격</code> 같은 키워드가 많이 나오면, <strong>리뷰 1,000개를 다 읽지 않고도</strong> 유저들이 뭘 말하는지 파악할 수 있습니다.</p>
+<p>키워드 추출 방법은 두 갈래입니다.</p>
+<table>
+<thead>
+<tr>
+<th>방식</th>
+<th>장점</th>
+<th>단점</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>전통 NLP (TF-IDF·RAKE·TextRank 등)</td>
+<td>빠르고 비용 거의 없음(수학적 계산)</td>
+<td><strong>맥락을 이해 못 함</strong></td>
+</tr>
+<tr>
+<td>LLM 기반</td>
+<td>맥락 이해 + <strong>의미적으로 중요한 것 식별</strong>, 정확</td>
+<td>API 비용, 상대적으로 느림</td>
+</tr>
+</tbody>
+</table>
+<p>전통 NLP는 단어 빈도(TF-IDF)나 규칙·그래프 기반 알고리즘(RAKE, TextRank)으로 키워드를 뽑습니다. 단점은 <strong>치명적</strong>이에요 — <code>not bad</code>를 <code>not</code>과 <code>bad</code>로 따로 떼어내 "부정"으로 처리할 수 있습니다. 의미가 정반대로 뒤집히죠. 반면 LLM은 맥락을 이해하니 <code>not bad</code>가 긍정 표현임을 알고, <strong>무엇이 의미적으로 중요한지</strong>까지 가려냅니다. 정형화된 단순 문제는 NLP로도 되지만, <strong>실무의 리뷰는 그렇게 단순하지 않기 때문에</strong> 우리 과정은 LLM 기반으로 진행합니다. 아직 시작 단계인 첨단 영역이라는 점도 기억해 두세요.</p>
+<h3 id="3_1">3. 호출·정제를 헬퍼 함수로 묶기</h3>
+<p>1·2강에서 매번 <code>client.chat.completions.create(...)</code>를 길게 쓰고, 응답에서 <code>```json</code>을 떼어냈죠. 같은 코드가 반복되니 이제 <strong>헬퍼 함수로 묶어</strong> 정리합니다. 더불어 정제 함수도 정규식으로 더 튼튼하게 만듭니다(코드블록뿐 아니라 앞뒤에 설명이 붙는 경우까지 처리).</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">re</span><span style="color: #666">,</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">json</span>
+
+<span style="color: #3D7B7B; font-style: italic"># ① 모델을 한 곳에서 관리 — 바꾸려면 이 줄만 수정</span>
+MODEL <span style="color: #666">=</span> <span style="color: #BA2121">&quot;mistralai/devstral-2512:free&quot;</span>
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">clean_json_response</span>(text):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;LLM 응답에서 순수 JSON 문자열만 추출한다(코드블록·앞뒤 설명 제거).&quot;&quot;&quot;</span>
+    text <span style="color: #666">=</span> text<span style="color: #666">.</span>strip()
+    <span style="color: #3D7B7B; font-style: italic"># ```json ... ``` 코드블록</span>
+    <span style="color: #008000; font-weight: bold">if</span> <span style="color: #BA2121">&quot;```json&quot;</span> <span style="color: #A2F; font-weight: bold">in</span> text:
+        m <span style="color: #666">=</span> re<span style="color: #666">.</span>search(<span style="color: #BA2121">r&#39;```json\s*([\s\S]*?)\s*```&#39;</span>, text)
+        <span style="color: #008000; font-weight: bold">if</span> m: <span style="color: #008000; font-weight: bold">return</span> m<span style="color: #666">.</span>group(<span style="color: #666">1</span>)<span style="color: #666">.</span>strip()
+    <span style="color: #3D7B7B; font-style: italic"># 그냥 ``` ... ``` 코드블록</span>
+    <span style="color: #008000; font-weight: bold">if</span> <span style="color: #BA2121">&quot;```&quot;</span> <span style="color: #A2F; font-weight: bold">in</span> text:
+        m <span style="color: #666">=</span> re<span style="color: #666">.</span>search(<span style="color: #BA2121">r&#39;```\s*([\s\S]*?)\s*```&#39;</span>, text)
+        <span style="color: #008000; font-weight: bold">if</span> m: <span style="color: #008000; font-weight: bold">return</span> m<span style="color: #666">.</span>group(<span style="color: #666">1</span>)<span style="color: #666">.</span>strip()
+    <span style="color: #3D7B7B; font-style: italic"># 코드블록이 없으면 첫 { 또는 [ 부터 마지막 } 또는 ]까지 통째로</span>
+    m <span style="color: #666">=</span> re<span style="color: #666">.</span>search(<span style="color: #BA2121">r&#39;(\{[\s\S]*\}|\[[\s\S]*\])&#39;</span>, text)
+    <span style="color: #008000; font-weight: bold">if</span> m: <span style="color: #008000; font-weight: bold">return</span> m<span style="color: #666">.</span>group(<span style="color: #666">1</span>)<span style="color: #666">.</span>strip()
+    <span style="color: #008000; font-weight: bold">return</span> text
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">call_llm</span>(system_prompt, user_message):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;시스템/유저 프롬프트를 받아 LLM 응답 텍스트를 돌려준다.&quot;&quot;&quot;</span>
+    response <span style="color: #666">=</span> client<span style="color: #666">.</span>chat<span style="color: #666">.</span>completions<span style="color: #666">.</span>create(
+        model<span style="color: #666">=</span>MODEL,
+        messages<span style="color: #666">=</span>[
+            {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;system&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: system_prompt},
+            {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;user&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: user_message},
+        ],
+    )
+    <span style="color: #008000; font-weight: bold">return</span> response<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">call_llm_json</span>(system_prompt, user_message):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;LLM을 호출하고 정제까지 거쳐 파이썬 객체(dict/list)로 돌려준다.&quot;&quot;&quot;</span>
+    raw <span style="color: #666">=</span> call_llm(system_prompt, user_message)
+    <span style="color: #008000; font-weight: bold">return</span> json<span style="color: #666">.</span>loads(clean_json_response(raw))
+</code></pre></div>
+
+<p><code>re</code>(정규식)는 "이런 패턴의 글자"를 찾아내는 도구입니다. <code>\{[\s\S]*\}</code>는 "여는 중괄호부터 닫는 중괄호까지 전부"라는 뜻이에요. 이제 어떤 작업이든 <code>call_llm_json(시스템프롬프트, 유저메시지)</code> 한 줄로 끝납니다. <strong>반복을 줄이면 정작 바뀌는 부분(프롬프트)에 집중</strong>할 수 있죠.</p>
+<p>오늘 실습의 전체 로드맵은 네 단계입니다 — ① <strong>키워드 추출 프롬프트</strong> 작성 → ② <strong>토픽 분류</strong> 기능 추가 → ③ <strong>JSON 구조화</strong> → ④ <strong>빈도 분석 코드</strong> 작성. 사실 이건 17차시의 <strong>퓨샷(예시 제공)</strong>과 19차시의 <strong>ABSA 구조(정의·규칙·예시·형식)</strong>를 조합하는 것이라, 새 기법이라기보다 <em>배운 걸 새 목적에 끼워 맞추는</em> 연습에 가깝습니다.</p>
+<h3 id="4">4. 키워드 추출 프롬프트</h3>
+<p>설계는 늘 같은 네 단계입니다 — <strong>역할 부여 → 규칙 정의 → 예시 제공 → 출력 형식</strong>. 이제 이 틀이 눈에 익으셨을 거예요. 그러면 우리가 바꿔야 할 <strong>핵심 부분(규칙)</strong>만 손보면 됩니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>KEYWORD_EXTRACT_PROMPT <span style="color: #666">=</span> <span style="color: #BA2121">&quot;&quot;&quot;너는 게임 리뷰 분석 전문가야.</span>
+<span style="color: #BA2121">리뷰에서 핵심 키워드를 추출해.</span>
+
+<span style="color: #BA2121">### 규칙 ###</span>
+<span style="color: #BA2121">- 게임과 관련된 키워드만 추출 (일반적인 단어 제외)</span>
+<span style="color: #BA2121">- 명사 또는 명사구 형태로</span>
+<span style="color: #BA2121">- 최대 5개까지</span>
+<span style="color: #BA2121">- 중요도 순으로 정렬</span>
+
+<span style="color: #BA2121">### 예시 ###</span>
+<span style="color: #BA2121">리뷰: &quot;Graphics are stunning but the game crashes every hour&quot;</span>
+<span style="color: #BA2121">키워드: [&quot;graphics&quot;, &quot;crashes&quot;, &quot;stability issues&quot;]</span>
+<span style="color: #BA2121">### 예시 끝 ###</span>
+
+<span style="color: #BA2121">JSON 배열 형식으로만 답해: [&quot;키워드1&quot;, &quot;키워드2&quot;, ...]&quot;&quot;&quot;</span>
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">extract_keywords</span>(review):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;리뷰에서 핵심 키워드 리스트를 뽑는다. 실패 시 빈 리스트.&quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">try</span>:
+        <span style="color: #008000; font-weight: bold">return</span> call_llm_json(KEYWORD_EXTRACT_PROMPT, <span style="color: #BA2121">f&quot;리뷰: </span><span style="color: #A45A77; font-weight: bold">{</span>review<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+    <span style="color: #008000; font-weight: bold">except</span> json<span style="color: #666">.</span>JSONDecodeError:
+        <span style="color: #008000; font-weight: bold">return</span> []
+
+<span style="color: #008000; font-weight: bold">for</span> r <span style="color: #A2F; font-weight: bold">in</span> [
+    <span style="color: #BA2121">&quot;Graphics are beautiful but the loading times are terrible. Too many bugs!&quot;</span>,
+    <span style="color: #BA2121">&quot;Amazing story and characters. Worth every penny. Highly recommend!&quot;</span>,
+]:
+    <span style="color: #008000">print</span>(r[:<span style="color: #666">45</span>], <span style="color: #BA2121">&quot;→&quot;</span>, extract_keywords(r))
+<span style="color: #3D7B7B; font-style: italic"># 예시: [&#39;graphics&#39;, &#39;loading times&#39;, &#39;bugs&#39;] / [&#39;story&#39;, &#39;characters&#39;, &#39;value for money&#39;]</span>
+</code></pre></div>
+
+<p>"게임 관련 키워드만"이라고 못 박으면 <code>the</code>·<code>is</code>·<code>very</code> 같은 일반 단어는 빠집니다. "명사/명사구"로 지정하면 <code>graphics</code> 같은 깔끔한 형태로 나와 더 쓸모 있죠. 프롬프트를 별도 변수(<code>KEYWORD_EXTRACT_PROMPT</code>)로 뺀 이유는, <strong>여기가 계속 바뀌는 부분</strong>이라 따로 관리하면 편하기 때문입니다.</p>
+<h3 id="5">5. 토픽 클러스터링 — 흩어진 키워드를 묶기</h3>
+<p><code>bugs, crashes, lag, optimization, frame drops</code> — 이 키워드들의 공통점은? 모두 <strong>기술 문제(technical)</strong>죠. 이렇게 비슷한 키워드를 하나의 주제로 묶는 게 <strong>토픽 클러스터링</strong>입니다. 파편적인 키워드도 묶으면 의미가 생깁니다.</p>
+<table>
+<thead>
+<tr>
+<th>토픽</th>
+<th>포함 키워드 예시</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>technical</td>
+<td>bugs, crashes, lag, optimization</td>
+</tr>
+<tr>
+<td>content</td>
+<td>story, characters, ending, DLC</td>
+</tr>
+<tr>
+<td>value</td>
+<td>price, sale, worth, playtime</td>
+</tr>
+<tr>
+<td>community</td>
+<td>multiplayer, server, matchmaking</td>
+</tr>
+</tbody>
+</table>
+<p>에스펙트와 토픽이 비슷해 보이지만, 핵심 차이가 있습니다.</p>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>에스펙트 (19차시)</th>
+<th>토픽 (이번 시간)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>접근</td>
+<td>탑다운 (미리 정의)</td>
+<td>바텀업 (데이터에서 발견)</td>
+</tr>
+<tr>
+<td>유연성</td>
+<td>고정됨</td>
+<td>유연함</td>
+</tr>
+<tr>
+<td>일관성</td>
+<td>높음</td>
+<td>낮을 수 있음</td>
+</tr>
+<tr>
+<td>발견</td>
+<td>정의한 것만</td>
+<td>예상 못한 것도</td>
+</tr>
+</tbody>
+</table>
+<p>둘은 우열이 아니라 <strong>상호 보완</strong>입니다. 에스펙트로 큰 틀을 잡고, 토픽으로 세부를 발견하는 <strong>하이브리드</strong>가 가장 강력해요. 키워드 추출 프롬프트에 토픽 정의를 더해, 키워드마다 토픽을 함께 붙여 봅시다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>KEYWORD_TOPIC_PROMPT <span style="color: #666">=</span> <span style="color: #BA2121">&quot;&quot;&quot;너는 게임 리뷰 분석 전문가야.</span>
+<span style="color: #BA2121">리뷰에서 키워드를 추출하고 토픽으로 분류해.</span>
+
+<span style="color: #BA2121">### 토픽 정의 ###</span>
+<span style="color: #BA2121">- technical: 버그, 최적화, 성능, 크래시 관련</span>
+<span style="color: #BA2121">- content: 스토리, 캐릭터, 게임플레이, DLC 관련</span>
+<span style="color: #BA2121">- value: 가격, 플레이타임, 가성비 관련</span>
+<span style="color: #BA2121">- community: 멀티플레이, 서버, 매칭 관련</span>
+<span style="color: #BA2121">- other: 위에 해당하지 않는 것</span>
+
+<span style="color: #BA2121">### 예시 ###</span>
+<span style="color: #BA2121">리뷰: &quot;Great story but crashes often. Worth the $20.&quot;</span>
+<span style="color: #BA2121">{</span>
+<span style="color: #BA2121">  &quot;keywords&quot;: [</span>
+<span style="color: #BA2121">    {&quot;word&quot;: &quot;story&quot;, &quot;topic&quot;: &quot;content&quot;},</span>
+<span style="color: #BA2121">    {&quot;word&quot;: &quot;crashes&quot;, &quot;topic&quot;: &quot;technical&quot;},</span>
+<span style="color: #BA2121">    {&quot;word&quot;: &quot;price&quot;, &quot;topic&quot;: &quot;value&quot;}</span>
+<span style="color: #BA2121">  ]</span>
+<span style="color: #BA2121">}</span>
+<span style="color: #BA2121">### 예시 끝 ###</span>
+
+<span style="color: #BA2121">JSON 형식으로만 답해.&quot;&quot;&quot;</span>
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">extract_keywords_with_topics</span>(review):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;키워드와 토픽을 함께 추출한다.&quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">try</span>:
+        <span style="color: #008000; font-weight: bold">return</span> call_llm_json(KEYWORD_TOPIC_PROMPT, <span style="color: #BA2121">f&quot;리뷰: </span><span style="color: #A45A77; font-weight: bold">{</span>review<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+    <span style="color: #008000; font-weight: bold">except</span> json<span style="color: #666">.</span>JSONDecodeError:
+        <span style="color: #008000; font-weight: bold">return</span> {<span style="color: #BA2121">&quot;keywords&quot;</span>: []}
+</code></pre></div>
+
+<p>토픽을 미리 정의(technical/content/value/community/other)하면 일관된 분류가 가능합니다. 이건 에스펙트(탑다운)와 키워드(바텀업)를 섞은 하이브리드인 셈이죠.</p>
+<h3 id="6">6. 빈도 분석 — 숫자가 우선순위를 만든다</h3>
+<p>키워드를 모았으면 <strong>몇 번 나왔는지</strong> 셉니다. 여기엔 LLM이 필요 없어요. 이미 LLM이 뽑아준 키워드를, 파이썬 기본 라이브러리 <code>collections.Counter</code>로 집계만 하면 됩니다. (LLM 분석 단계와 집계 단계를 머릿속에서 구분해 두면 개발이 쉬워집니다.)</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">collections</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> Counter
+<span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">time</span>
+
+sample_reviews <span style="color: #666">=</span> [
+    <span style="color: #BA2121">&quot;Amazing graphics but terrible bugs. Crashes constantly.&quot;</span>,
+    <span style="color: #BA2121">&quot;Story is masterpiece. Worth every penny despite some lag.&quot;</span>,
+    <span style="color: #BA2121">&quot;Multiplayer servers are broken. Too expensive for what you get.&quot;</span>,
+    <span style="color: #BA2121">&quot;Beautiful visuals and engaging gameplay. Minor optimization issues.&quot;</span>,
+    <span style="color: #BA2121">&quot;Great characters but loading times are frustrating. Good value on sale.&quot;</span>,
+]
+
+<span style="color: #3D7B7B; font-style: italic"># 1) 여러 리뷰에서 키워드를 모은다</span>
+all_keywords <span style="color: #666">=</span> []
+<span style="color: #008000; font-weight: bold">for</span> i, review <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">enumerate</span>(sample_reviews, <span style="color: #666">1</span>):
+    result <span style="color: #666">=</span> extract_keywords_with_topics(review)
+    all_keywords<span style="color: #666">.</span>extend(result<span style="color: #666">.</span>get(<span style="color: #BA2121">&quot;keywords&quot;</span>, []))   <span style="color: #3D7B7B; font-style: italic"># extend: 리스트를 펼쳐서 합치기</span>
+    <span style="color: #008000; font-weight: bold">if</span> i <span style="color: #666">&lt;</span> <span style="color: #008000">len</span>(sample_reviews):
+        time<span style="color: #666">.</span>sleep(<span style="color: #666">1</span>)
+
+<span style="color: #3D7B7B; font-style: italic"># 2) 키워드 빈도 Top 10 (Counter가 세는 일을 대신해 준다)</span>
+word_counts <span style="color: #666">=</span> Counter(k[<span style="color: #BA2121">&quot;word&quot;</span>]<span style="color: #666">.</span>lower() <span style="color: #008000; font-weight: bold">for</span> k <span style="color: #A2F; font-weight: bold">in</span> all_keywords)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;=== 키워드 빈도 Top 10 ===&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> rank, (word, count) <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">enumerate</span>(word_counts<span style="color: #666">.</span>most_common(<span style="color: #666">10</span>), <span style="color: #666">1</span>):
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>rank<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">2</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">. </span><span style="color: #A45A77; font-weight: bold">{</span>word<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">20</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> </span><span style="color: #A45A77; font-weight: bold">{</span>count<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">회&quot;</span>)
+
+<span style="color: #3D7B7B; font-style: italic"># 3) 토픽별 분포 (%)</span>
+topic_counts <span style="color: #666">=</span> Counter(k[<span style="color: #BA2121">&quot;topic&quot;</span>] <span style="color: #008000; font-weight: bold">for</span> k <span style="color: #A2F; font-weight: bold">in</span> all_keywords)
+total <span style="color: #666">=</span> <span style="color: #008000">sum</span>(topic_counts<span style="color: #666">.</span>values())
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">=== 토픽별 분포 ===&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> topic, count <span style="color: #A2F; font-weight: bold">in</span> topic_counts<span style="color: #666">.</span>most_common():
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>topic<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">12</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> </span><span style="color: #A45A77; font-weight: bold">{</span>count<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">2</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">회 (</span><span style="color: #A45A77; font-weight: bold">{</span>count<span style="color: #666">/</span>total<span style="color: #666">*100</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">4.1f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%)&quot;</span>)
+</code></pre></div>
+
+<blockquote>
+<p><code>extend</code>와 <code>append</code>의 차이: <code>append</code>는 리스트를 통째로 하나의 요소로 넣고, <code>extend</code>는 펼쳐서 이어 붙입니다. 키워드 리스트끼리 합칠 땐 <code>extend</code>가 맞아요.</p>
+</blockquote>
+<p>빈도가 왜 중요할까요? <strong>빈도가 곧 우선순위</strong>이기 때문입니다. "버그가 좀 있는 것 같아"는 감(感)이고 근거가 없습니다. "버그 언급 234회, 전체의 23%"는 <strong>데이터 기반 의사결정</strong>이고, 누가 반박해도 설득력이 있죠.</p>
+<p>데이터가 충분할 때 어떤 그림이 나오는지 봅시다. 리뷰 50개를 분석하면 예컨대 이런 결과가 나옵니다.</p>
+<table>
+<thead>
+<tr>
+<th>순위</th>
+<th>키워드</th>
+<th>빈도</th>
+<th></th>
+<th>토픽</th>
+<th>분포</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>bugs</td>
+<td>23회</td>
+<td></td>
+<td>technical</td>
+<td>37%</td>
+</tr>
+<tr>
+<td>2</td>
+<td>graphics</td>
+<td>18회</td>
+<td></td>
+<td>content</td>
+<td>33%</td>
+</tr>
+<tr>
+<td>3</td>
+<td>story</td>
+<td>15회</td>
+<td></td>
+<td>value</td>
+<td>16%</td>
+</tr>
+<tr>
+<td>4</td>
+<td>crashes</td>
+<td>14회</td>
+<td></td>
+<td>community</td>
+<td>9%</td>
+</tr>
+<tr>
+<td>5</td>
+<td>price</td>
+<td>12회</td>
+<td></td>
+<td>other</td>
+<td>5%</td>
+</tr>
+</tbody>
+</table>
+<p><code>bugs</code>와 <code>crashes</code>가 나란히 상위권이고 둘 다 <strong>technical</strong> 토픽이죠. 토픽 분포에서도 technical이 37%로 가장 큽니다. 그러면 결론은 명확합니다 — <strong>기술 문제(버그·크래시) 해결이 급선무.</strong> 이렇게 빈도와 토픽 분포가 곧장 우선순위와 행동으로 이어집니다.</p>
+<blockquote>
+<p>주의: 위 샘플은 리뷰가 5개뿐이라 키워드가 대부분 1회씩 나옵니다(데이터가 적어서). 실제 리뷰 수백~수천 개를 넣으면 <code>bugs 234회</code>처럼 빈도 격차가 뚜렷해지고, 그제야 우선순위가 의미를 가집니다.</p>
+</blockquote>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>탑다운(top-down)</td>
+<td>카테고리를 미리 정해놓고 분석. 일관적이나 정의 밖은 놓침 (에스펙트)</td>
+</tr>
+<tr>
+<td>바텀업(bottom-up)</td>
+<td>데이터에서 키워드를 먼저 발견해 묶음. 예상 밖 주제도 포착 (토픽)</td>
+</tr>
+<tr>
+<td>키워드 추출</td>
+<td>리뷰에서 핵심 단어/구를 자동으로 뽑기</td>
+</tr>
+<tr>
+<td>전통 NLP vs LLM</td>
+<td>TF-IDF 등은 빠르나 맥락을 못 읽음(<code>not bad</code>→오해), LLM은 맥락 이해</td>
+</tr>
+<tr>
+<td>토픽 클러스터링</td>
+<td>비슷한 키워드를 하나의 주제로 묶기 (technical, content, value…)</td>
+</tr>
+<tr>
+<td>빈도 분석</td>
+<td>키워드가 몇 번 나왔는지 세기. <strong>빈도 = 우선순위</strong></td>
+</tr>
+<tr>
+<td><code>Counter</code> / <code>most_common()</code></td>
+<td>빈도를 세고 상위 N개를 뽑는 파이썬 기본 도구</td>
+</tr>
+<tr>
+<td>헬퍼 함수</td>
+<td><code>call_llm_json()</code>처럼 반복 코드를 묶어 재사용</td>
+</tr>
+<tr>
+<td><code>re</code>(정규식)</td>
+<td>"이런 패턴의 글자"를 찾는 도구. 응답 정제에 사용</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>에스펙트(2강)가 <em>기획자가 보기로 한 축</em>이라면, 키워드/토픽은 <em>유저가 실제로 말한 축</em>입니다. 패치 후 "로딩이 느려졌다"가 갑자기 키워드 상위로 치고 올라오면, 우리가 정의하지 않았어도 데이터가 먼저 알려 주죠 — 바텀업의 진짜 가치는 <strong>모니터링하지 않던 문제의 조기 경보</strong>입니다. 그리고 빈도표는 회의의 무기가 됩니다. "체감상 버그 불만이 좀…"이 아니라 "버그 언급 234회(23%), technical 토픽 37%"라고 말하는 순간, 우선순위 논쟁이 <strong>근거 싸움</strong>으로 바뀝니다. 탑다운(에스펙트)으로 KPI를 고정하고, 바텀업(토픽)으로 신호를 줍는 — 두 축을 함께 돌리는 게 실전 운영입니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>전통 NLP가 LLM보다 항상 나쁜 건 아닙니다.</strong> 정형화된 대량 작업엔 빠르고 싼 NLP가 유리할 때도 있어요. 다만 맥락이 중요한 리뷰엔 LLM이 강합니다.</li>
+<li><strong>빈도가 높다고 무조건 중요한 건 아닙니다.</strong> 흔하고 짧은 표현(예: "갓겜")이 상위에 올 수 있어, 목적에 따라 불용어 처리가 필요할 수 있습니다.</li>
+<li><strong>에스펙트 vs 토픽을 택일로 보면 안 됩니다.</strong> 탑다운+바텀업을 <strong>함께</strong> 써야 풍부해집니다.</li>
+<li><strong>샘플이 적으면 빈도 분석은 무의미합니다.</strong> 키워드가 1회씩이면 우선순위가 안 보입니다. 데이터를 충분히 모으세요.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li>에스펙트(탑다운)는 정의 밖을 놓칩니다. <strong>키워드 추출(바텀업)</strong>로 예상 못 한 이슈까지 발견하세요.</li>
+<li>키워드는 <strong>맥락을 읽는 LLM</strong>으로 뽑고, 비슷한 것끼리 <strong>토픽으로 묶어</strong> 의미를 만듭니다.</li>
+<li><strong>빈도가 곧 우선순위.</strong> <code>Counter</code>로 집계해 "무엇을 먼저 고칠지"를 데이터로 답하세요. 반복 호출은 헬퍼 함수로 깔끔하게.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>다음 21차시는 <strong>프로젝트 시간(영상 없음)</strong>입니다 — <strong>4차원 통합 분석</strong>. 1~3강에서 배운 감성(다차원)·에스펙트(ABSA)·키워드/토픽을 <strong>하나의 멀티태스크 프롬프트</strong>로 합쳐, 리뷰 한 건에서 모든 결과를 JSON으로 한 번에 받아 봅니다. 그리고 22차시(배치 처리)부터는 시야가 바뀝니다 — 리뷰 5개가 아니라 <strong>1,000개, 10만 개</strong>를 효율적이고 안전하게 처리하는 법으로 넘어갑니다.</p>
+</article>
+<div class="pager"><a class="prev" href="2강.html"><span class="lbl">← 이전</span><span class="ttl">2강 — 감성 분석 심화 (다차원 감성 · ABSA)</span></a><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><a class="next" href="4강.html"><span class="lbl">다음 →</span><span class="ttl">4강 — 배치 처리와 효율화</span></a></div>
+</div>
+</body>
+</html>

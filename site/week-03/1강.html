@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1강 — 프롬프트 고급 기술</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-03 · 1강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="1">1강 — 프롬프트 고급 기술</h1>
+<blockquote>
+<p>3주차 1강 / 17차시 (29분 6초)</p>
+</blockquote>
+<h2 id="_1">🎯 학습 목표</h2>
+<ul>
+<li><strong>퓨샷(Few-shot)</strong>으로 AI에게 예시를 제공해 일관된 결과를 끌어낼 수 있다</li>
+<li><strong>생각의 사슬(CoT)</strong>로 AI의 추론 과정을 유도해 정확도를 높일 수 있다</li>
+<li>감성 분석 외에 <strong>키워드 추출·요약</strong> 등 다양한 작업을 같은 방식으로 수행할 수 있다</li>
+<li>한 번의 호출로 여러 분석을 받는 <strong>멀티태스크 분석</strong>과 <strong>JSON 출력</strong>을 만들 수 있다</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<p>세 번째 날의 첫 시간입니다. 지난 시간(2주차 6강)에 프롬프트 엔지니어링 기초 — <strong>역할 부여</strong>와 <strong>출력 형식 지정</strong> — 을 배웠죠. 오늘은 한 단계 더 나아갑니다. <strong>AI에게 예시를 보여주고, 생각하는 방법까지 알려주는</strong> 고급 기술입니다. 이 기법들을 익히면 같은 모델로도 훨씬 정확하고 일관된 결과를 뽑을 수 있습니다.</p>
+<h3 id="0">0. 지난 내용 빠르게 점검</h3>
+<p>오늘 실습의 토대가 되는 네 가지를 짚고 갑시다.</p>
+<ol>
+<li><strong>텍스트 정제</strong> — <code>ㅋㅋㅋ</code>나 특수문자 같은 노이즈를 걷어내야 분석 품질이 올라갑니다. 노이즈는 토큰 사용량을 늘려 비용도 키웁니다.</li>
+<li><strong>임베딩</strong> — 텍스트를 숫자 벡터로 바꿔 AI가 이해할 수 있는 형태로 만드는 것.</li>
+<li><strong>API 키 관리</strong> — Colab Secrets에 저장해 안전하게 불러옵니다. <strong>코드에 키를 직접 넣으면 절대 안 됩니다.</strong></li>
+<li><strong>프롬프트 기초</strong> — 역할을 주고 형식을 지정하면 일관된 답변을 받습니다.</li>
+</ol>
+<h3 id="1_1">1. 시작 전 — 환경 설정 다시 잡기</h3>
+<p>Colab은 세션이 끊기면 설치한 라이브러리와 클라이언트 설정이 사라집니다. 그래서 매번 맨 위에서 준비 단계를 한 번 실행합니다. 새 내용이 아니라 반복하는 고정 작업이에요.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># ① OpenAI 호환 라이브러리 설치 (-q: 설치 로그를 조용히)</span>
+<span style="border: 1px solid #F00">!</span>pip install openai <span style="color: #666">-</span>q
+
+<span style="color: #3D7B7B; font-style: italic"># ② Colab Secrets에 저장해 둔 API 키 불러오기 (코드에 키를 직접 쓰지 않기 위함)</span>
+<span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">google.colab</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> userdata
+api_key <span style="color: #666">=</span> userdata<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;OPENROUTER_API_KEY&#39;</span>)
+
+<span style="color: #3D7B7B; font-style: italic"># ③ 모델을 맨 앞에서 한 번만 정해두면, 아래 모든 함수가 이 모델을 씁니다.</span>
+<span style="color: #3D7B7B; font-style: italic">#    OpenRouter에는 수많은 모델이 있으니, 이 줄만 바꿔 다른 모델로 실험해 보세요.</span>
+MODEL <span style="color: #666">=</span> <span style="color: #BA2121">&quot;mistralai/devstral-2512:free&quot;</span>
+
+<span style="color: #3D7B7B; font-style: italic"># ④ OpenRouter를 향하도록 클라이언트 만들기 (base_url만 바꾸면 여러 모델을 같은 코드로 호출)</span>
+<span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">openai</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> OpenAI
+client <span style="color: #666">=</span> OpenAI(
+    base_url<span style="color: #666">=</span><span style="color: #BA2121">&quot;https://openrouter.ai/api/v1&quot;</span>,
+    api_key<span style="color: #666">=</span>api_key,
+)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;준비 완료!&quot;</span>)
+</code></pre></div>
+
+<blockquote>
+<p>모델마다 개성이 다릅니다. ChatGPT·Claude·Gemini 같은 상용 고급 모델은 형식을 잘 지키지만, <strong>무료 모델이나 사전 학습만 되어 있어 목적에 맞게 재구성되지 않은(파인튜닝용) 모델</strong>은 우리가 원하는 형태로 딱 떨어지지 않을 수 있어요. <strong>모델을 바꿔가며 돌려보는 것 자체가 좋은 경험</strong>입니다. 이후 AI 앱을 만들 때 "어떤 모델이 어떤 작업에 강한가"를 아는 게 큰 자산이 됩니다.</p>
+</blockquote>
+<h3 id="2-vs">2. 제로샷 vs 퓨샷 — 예시의 힘</h3>
+<ul>
+<li><strong>제로샷(Zero-shot)</strong>: 예시 없이 지시만 하는 것. "positive / negative / mixed 중 하나로 분류해."</li>
+<li><strong>퓨샷(Few-shot)</strong>: 예시를 먼저 보여주고 지시하는 것. "이건 positive, 이건 negative… 이제 분류해."</li>
+</ul>
+<p><strong>신입사원 교육</strong>으로 비유해 봅시다. "보고서 써와"라고만 하면 뭘 어떻게 해야 할지 막막하죠. "이런 식으로 써, 예시 봐"라고 하면 훨씬 정확하게 합니다. AI도 똑같아요. <strong>예시를 보면 우리의 기준을 파악</strong>합니다.</p>
+<p>먼저 제로샷입니다. <code>Not bad, but nothing special either.</code>(나쁘진 않은데 특별할 것도 없다)처럼 애매한 리뷰를 줘 봅시다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 제로샷: 예시 없이 지시만 한다</span>
+response <span style="color: #666">=</span> client<span style="color: #666">.</span>chat<span style="color: #666">.</span>completions<span style="color: #666">.</span>create(
+    model<span style="color: #666">=</span>MODEL,
+    messages<span style="color: #666">=</span>[
+        {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;system&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>:
+            <span style="color: #BA2121">&quot;너는 게임 리뷰 감성 분석 전문가야. &quot;</span>
+            <span style="color: #BA2121">&quot;리뷰를 읽고 POSITIVE, NEGATIVE, MIXED 중 하나로 분류해. &quot;</span>
+            <span style="color: #BA2121">&quot;다른 설명 없이 분류 결과만 답해.&quot;</span>},
+        {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;user&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: <span style="color: #BA2121">&quot;리뷰: Not bad, but nothing special either.&quot;</span>},
+    ],
+)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;[제로샷 결과]&quot;</span>, response<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content)
+<span style="color: #3D7B7B; font-style: italic"># 예시 출력: MIXED (모델·환경에 따라 다를 수 있음)</span>
+</code></pre></div>
+
+<p>제로샷도 대체로 잘 합니다. 다만 <strong>애매한 케이스에서 일관성이 부족</strong>해요. 어떤 건 MIXED로, 비슷한 건 POSITIVE로 흔들립니다. 그래서 우리 기준을 못 박고 싶을 때 퓨샷을 씁니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 퓨샷: 입력-출력 예시를 먼저 보여주고 지시한다</span>
+response <span style="color: #666">=</span> client<span style="color: #666">.</span>chat<span style="color: #666">.</span>completions<span style="color: #666">.</span>create(
+    model<span style="color: #666">=</span>MODEL,
+    messages<span style="color: #666">=</span>[
+        {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;system&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>:
+            <span style="color: #BA2121">&quot;너는 게임 리뷰 감성 분석 전문가야.</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;아래 예시를 참고해서 리뷰의 감성을 분류해.</span><span style="color: #AA5D1F; font-weight: bold">\n\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;### 예시 ###</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&#39;review: &quot;Best game ever! Totally worth it.&quot;</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&#39;</span>
+            <span style="color: #BA2121">&quot;sentiment: POSITIVE</span><span style="color: #AA5D1F; font-weight: bold">\n\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&#39;review: &quot;Terrible. Crashes every 5 minutes.&quot;</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&#39;</span>
+            <span style="color: #BA2121">&quot;sentiment: NEGATIVE</span><span style="color: #AA5D1F; font-weight: bold">\n\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&#39;review: &quot;Fun gameplay but too many bugs.&quot;</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&#39;</span>
+            <span style="color: #BA2121">&quot;sentiment: MIXED</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;### 예시 끝 ###</span><span style="color: #AA5D1F; font-weight: bold">\n\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;답변은 POSITIVE, NEGATIVE, MIXED 중 하나로만 해.&quot;</span>},
+        {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;user&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: <span style="color: #BA2121">&quot;리뷰: Not bad, but nothing special either.&quot;</span>},
+    ],
+)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;[퓨샷 결과]&quot;</span>, response<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content)
+</code></pre></div>
+
+<p><strong>퓨샷의 핵심 포인트</strong>를 정리하면:</p>
+<table>
+<thead>
+<tr>
+<th>요소</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>### 예시 ###</code> … <code>### 예시 끝 ###</code></td>
+<td>예시의 <strong>시작과 끝을 분명히</strong> 표시</td>
+</tr>
+<tr>
+<td>입력-출력 쌍</td>
+<td>리뷰(입력)와 감성(출력)을 짝지어 보여주기</td>
+</tr>
+<tr>
+<td>3개 정도</td>
+<td>긍정·부정·혼합 각 1개씩. <strong>너무 많으면 토큰 비용 증가</strong></td>
+</tr>
+</tbody>
+</table>
+<p>긍정·부정·혼합 예시를 하나씩 보여주면 AI가 우리 기준을 잡습니다. 도메인마다 애매하거나 특별한 기준(예: 특정 키워드가 들어가면 긍정으로 본다)이 있으면, 예시에 그걸 녹여 우리만의 규칙을 적용할 수도 있어요. 참고로 제로샷이 무조건 나쁜 게 아닙니다. <strong>백지 상태에서 브레인스토밍하거나 새 방향을 넓게 탐색할 때는 제로샷</strong>이, <strong>원하는 형태가 정해져 바로 쓸 결과가 필요할 때는 퓨샷</strong>이 어울립니다.</p>
+<h3 id="3-cot">3. 생각의 사슬(CoT) — 단계별로 생각하게 하기</h3>
+<p><strong>생각의 사슬(Chain of Thought, 줄여서 CoT)</strong>은 AI가 <strong>생각하는 과정을 드러내게</strong> 하는 기술입니다.</p>
+<p><strong>수학 문제</strong>로 비유해 봅시다. 답만 "402"라고 적으면 맞았는지 틀렸는지, 어디서 틀렸는지 알기 어렵죠. 풀이 과정을 보여주면 어디서 어긋났는지 보입니다. AI도 "단계별로 생각해"라고 하면 추론 과정을 거칩니다. 그리고 <strong>놀라운 점은, 과정을 정리하며 답하면 답의 정확도 자체가 올라간다</strong>는 것입니다.</p>
+<p>비교해 봅시다. 먼저 결과만 받는 경우:</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># CoT 없이 — 결과만 받기</span>
+review <span style="color: #666">=</span> <span style="color: #BA2121">&quot;Beautiful graphics and immersive world, but the constant crashes and lag make it unplayable.&quot;</span>
+response <span style="color: #666">=</span> client<span style="color: #666">.</span>chat<span style="color: #666">.</span>completions<span style="color: #666">.</span>create(
+    model<span style="color: #666">=</span>MODEL,
+    messages<span style="color: #666">=</span>[
+        {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;system&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>:
+            <span style="color: #BA2121">&quot;너는 게임 리뷰 감성 분석 전문가야. POSITIVE, NEGATIVE, MIXED 중 하나로만 답해.&quot;</span>},
+        {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;user&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: <span style="color: #BA2121">f&quot;리뷰: </span><span style="color: #A45A77; font-weight: bold">{</span>review<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>},
+    ],
+)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;[결과만]&quot;</span>, response<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content)
+</code></pre></div>
+
+<p>이번엔 <strong>단계를 명시</strong>하고 <strong>답변 형식</strong>도 단계별로 지정합니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># CoT 적용 — 분석 단계를 못 박고, 형식도 단계별로 지정</span>
+response <span style="color: #666">=</span> client<span style="color: #666">.</span>chat<span style="color: #666">.</span>completions<span style="color: #666">.</span>create(
+    model<span style="color: #666">=</span>MODEL,
+    messages<span style="color: #666">=</span>[
+        {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;system&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>:
+            <span style="color: #BA2121">&quot;너는 게임 리뷰 감성 분석 전문가야.</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;리뷰를 분석할 때 다음 단계를 따라:</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;1. 긍정적 표현 찾기</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;2. 부정적 표현 찾기</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;3. 어느 쪽이 더 강한지 판단</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;4. 최종 결론 내리기</span><span style="color: #AA5D1F; font-weight: bold">\n\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;답변 형식:</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;[분석]</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;긍정: (발견한 긍정 표현)</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;부정: (발견한 부정 표현)</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;판단: (어느 쪽이 강한지)</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;[결론]</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+            <span style="color: #BA2121">&quot;감성: POSITIVE/NEGATIVE/MIXED&quot;</span>},
+        {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;user&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: <span style="color: #BA2121">f&quot;리뷰: </span><span style="color: #A45A77; font-weight: bold">{</span>review<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>},
+    ],
+)
+<span style="color: #008000">print</span>(response<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content)
+<span style="color: #3D7B7B; font-style: italic"># 예시 출력:</span>
+<span style="color: #3D7B7B; font-style: italic"># [분석]</span>
+<span style="color: #3D7B7B; font-style: italic"># 긍정: &quot;Beautiful graphics&quot;, &quot;immersive world&quot;</span>
+<span style="color: #3D7B7B; font-style: italic"># 부정: &quot;constant crashes&quot;, &quot;lag&quot;, &quot;make it unplayable&quot;</span>
+<span style="color: #3D7B7B; font-style: italic"># 판단: 부정적 표현이 더 강함</span>
+<span style="color: #3D7B7B; font-style: italic"># [결론]</span>
+<span style="color: #3D7B7B; font-style: italic"># 감성: NEGATIVE</span>
+</code></pre></div>
+
+<p>위 리뷰는 "그래픽은 예쁘고 몰입감 있지만 잦은 크래시와 렉으로 플레이 불가"라는 내용입니다. 결과만 받으면 MIXED로 흐를 수 있지만, <strong>단계를 밟게 하면 "기술 문제가 더 심각하다"는 판단까지 내려 NEGATIVE</strong>로 잡아냅니다. 왜 그렇게 판단했는지 근거가 함께 나오니 나중에 검증하기도 편하죠.</p>
+<p><strong>CoT의 숨은 장점은 디버깅 도구</strong>라는 것입니다. "디버그(debug)"는 프로그래밍에서 코드의 잘못(벌레, bug)을 잡아 고친다는 뜻인데요, 같은 발상으로 CoT는 <strong>AI가 어디서 잘못 판단했는지를 드러냅니다.</strong> 결과만 받으면 POSITIVE가 맞는지 알 수 없고 틀려도 이유를 모르죠. 추론 과정을 같이 받으면 "아, AI가 버그 언급을 무시하고 긍정만 봤구나" 하고 문제를 발견할 수 있습니다. 그러면 프롬프트에 "부정 표현도 반드시 확인해"를 덧붙여 고칠 수 있어요. 참고로 요즘 고급 모델에 들어가는 <strong>'싱킹(thinking)' 기능</strong>이 바로 이 CoT가 발전한 형태입니다.</p>
+<h3 id="4">4. 다양한 분석 — 프롬프트만 바꾸면 된다</h3>
+<p>감성 분석만 할 수 있는 게 아닙니다. <strong>프롬프트만 바꾸면</strong> 정말 다양한 작업이 가능해요. 키워드 추출, 요약, 카테고리 분류(그래픽 얘기인지 스토리 얘기인지), 개선점 추출 등. 같은 리뷰 데이터에서 다양한 인사이트를 뽑는 거죠. 여기서 <strong>여러분의 창의성</strong>이 빛납니다.</p>
+<p>먼저 <strong>키워드 추출</strong>입니다. 함수 구조는 감성 분석과 거의 같고 프롬프트만 다릅니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">extract_keywords</span>(review):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;리뷰에서 게임 관련 핵심 키워드 3개를 뽑는다.&quot;&quot;&quot;</span>
+    response <span style="color: #666">=</span> client<span style="color: #666">.</span>chat<span style="color: #666">.</span>completions<span style="color: #666">.</span>create(
+        model<span style="color: #666">=</span>MODEL,
+        messages<span style="color: #666">=</span>[
+            {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;system&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>:
+                <span style="color: #BA2121">&quot;너는 게임 리뷰 분석 전문가야.</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&quot;리뷰에서 핵심 키워드 3개를 추출해.</span><span style="color: #AA5D1F; font-weight: bold">\n\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&quot;규칙:</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&quot;- 게임과 관련된 키워드만 (graphics, story, bugs 등)</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&quot;- 쉼표로 구분해서 출력</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&quot;- 다른 설명 없이 키워드만</span><span style="color: #AA5D1F; font-weight: bold">\n\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&quot;예시: graphics, story, multiplayer&quot;</span>},
+            {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;user&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: <span style="color: #BA2121">f&quot;리뷰: </span><span style="color: #A45A77; font-weight: bold">{</span>review<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>},
+        ],
+    )
+    <span style="color: #008000; font-weight: bold">return</span> response<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content
+
+test <span style="color: #666">=</span> <span style="color: #BA2121">&quot;The game has stunning visuals and an engaging story, but the multiplayer servers are always down.&quot;</span>
+<span style="color: #008000">print</span>(extract_keywords(test))
+<span style="color: #3D7B7B; font-style: italic"># 예시 출력: graphics, story, multiplayer</span>
+</code></pre></div>
+
+<p>규칙을 명시(게임 관련만, 쉼표 구분, 설명 없이)하고 예시를 하나 보여주면 키워드가 깔끔하게 나옵니다. 이렇게 형식을 못 박으면 나중에 <code>.split(",")</code>로 쪼개 바로 코드에 활용할 수 있어요.</p>
+<p>다음은 <strong>한 줄 요약</strong>입니다. 길이를 제한하지 않으면 요약이 길어지니 "15단어 이내, 한 문장"으로 묶습니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">summarize_review</span>(review):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;리뷰를 핵심 의견 중심으로 한 문장(15단어 이내) 요약한다.&quot;&quot;&quot;</span>
+    response <span style="color: #666">=</span> client<span style="color: #666">.</span>chat<span style="color: #666">.</span>completions<span style="color: #666">.</span>create(
+        model<span style="color: #666">=</span>MODEL,
+        messages<span style="color: #666">=</span>[
+            {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;system&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>:
+                <span style="color: #BA2121">&quot;너는 게임 리뷰 요약 전문가야.</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&quot;리뷰를 한 문장(15단어 이내)으로 요약해.</span><span style="color: #AA5D1F; font-weight: bold">\n\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&quot;규칙:</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">- 핵심 의견만 담기</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">- 감성(좋음/나쁨)을 포함</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">- 한국어로 작성&quot;</span>},
+            {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;user&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: <span style="color: #BA2121">f&quot;리뷰: </span><span style="color: #A45A77; font-weight: bold">{</span>review<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>},
+        ],
+    )
+    <span style="color: #008000; font-weight: bold">return</span> response<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content
+
+long_review <span style="color: #666">=</span> (<span style="color: #BA2121">&quot;I&#39;ve been playing this game for over 100 hours and I still can&#39;t get enough. &quot;</span>
+               <span style="color: #BA2121">&quot;The combat system is amazing, the story keeps you hooked, and the graphics are &quot;</span>
+               <span style="color: #BA2121">&quot;top-notch. However, I wish there was more endgame content.&quot;</span>)
+<span style="color: #008000">print</span>(summarize_review(long_review))
+<span style="color: #3D7B7B; font-style: italic"># 예시 출력: 100시간 플레이해도 질리지 않는 매력적인 게임, 하지만 엔드게임 콘텐츠가 아쉬워요.</span>
+</code></pre></div>
+
+<p>리뷰 1,000개를 한 줄씩 요약해 한눈에 훑고 싶을 때 유용하겠죠.</p>
+<h3 id="5">5. 멀티태스크 분석 — 한 번에 여러 분석을</h3>
+<p>지금까지 배운 퓨샷·CoT·다양한 분석을 <strong>하나로 합쳐</strong> 봅시다. 한 번의 API 호출로 <strong>감성 + 키워드 + 요약 + 판단 근거</strong> 네 가지를 동시에 뽑는 <strong>멀티태스크 분석</strong> 함수입니다. 같은 리뷰를 네 번 호출할 필요가 없으니 훨씬 효율적이에요. 출력은 <strong>JSON 형식</strong>으로 받아 후처리를 쉽게 만듭니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">analyze_review_full</span>(review):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;리뷰를 종합 분석: 감성 + 키워드 + 요약 + 근거를 JSON으로 한 번에.&quot;&quot;&quot;</span>
+    response <span style="color: #666">=</span> client<span style="color: #666">.</span>chat<span style="color: #666">.</span>completions<span style="color: #666">.</span>create(
+        model<span style="color: #666">=</span>MODEL,
+        messages<span style="color: #666">=</span>[
+            {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;system&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>:
+                <span style="color: #BA2121">&quot;너는 게임 리뷰 분석 전문가야.</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&quot;리뷰를 분석해서 다음 정보를 JSON 형식으로 추출해.</span><span style="color: #AA5D1F; font-weight: bold">\n\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&quot;### 예시 ###</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&#39;review: &quot;Amazing graphics and story, but multiplayer is broken.&quot;</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&#39;</span>
+                <span style="color: #BA2121">&quot;{</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&#39;  &quot;sentiment&quot;: &quot;MIXED&quot;,</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&#39;</span>
+                <span style="color: #BA2121">&#39;  &quot;keywords&quot;: [&quot;graphics&quot;, &quot;story&quot;, &quot;multiplayer&quot;],</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&#39;</span>
+                <span style="color: #BA2121">&#39;  &quot;summary&quot;: &quot;그래픽과 스토리는 좋지만 멀티플레이어가 문제&quot;,</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&#39;</span>
+                <span style="color: #BA2121">&#39;  &quot;reasoning&quot;: &quot;긍정(graphics, story) vs 부정(broken multiplayer)&quot;</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&#39;</span>
+                <span style="color: #BA2121">&quot;}</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&quot;### 예시 끝 ###</span><span style="color: #AA5D1F; font-weight: bold">\n\n</span><span style="color: #BA2121">&quot;</span>
+                <span style="color: #BA2121">&quot;반드시 JSON 형식으로만 답해.&quot;</span>},
+            {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;user&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: <span style="color: #BA2121">f&quot;리뷰: </span><span style="color: #A45A77; font-weight: bold">{</span>review<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>},
+        ],
+    )
+    <span style="color: #008000; font-weight: bold">return</span> response<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content
+
+test <span style="color: #666">=</span> <span style="color: #BA2121">&quot;Great game with beautiful visuals. However, it crashes frequently and the multiplayer is laggy.&quot;</span>
+result <span style="color: #666">=</span> analyze_review_full(test)
+<span style="color: #008000">print</span>(result)
+</code></pre></div>
+
+<p>여기에 퓨샷(예시 제공), CoT(<code>reasoning</code>으로 근거 요구), JSON 출력이 한 함수에 다 들어 있습니다. <strong>토큰을 많이 주고받게 되니</strong>(멀티태스크는 한 번에 많은 걸 요청하므로), 비용 감각도 함께 가져가세요.</p>
+<h3 id="6-json-tryexcept">6. JSON 파싱과 <code>try/except</code> — 받은 결과를 데이터로</h3>
+<p>AI가 준 답은 사실 <strong>문자열</strong>입니다. 이걸 파이썬 딕셔너리로 바꿔야 <code>result["sentiment"]</code>처럼 값에 바로 접근할 수 있어요. 변환은 <code>json.loads()</code>가 합니다.</p>
+<p>그런데 한 가지 함정이 있습니다. "반드시 JSON으로만 답해"라고 했는데도, 모델이 응답 앞에 <strong><code>```json</code></strong> 같은 마크다운 표시를 붙여 보내는 경우가 종종 있습니다. 이러면 <code>json.loads()</code>가 바로 실패해요. 그래서 <strong>앞뒤의 군더더기를 떼어내는 정제 함수</strong>를 만들어 둡니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">json</span>
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">clean_json_string</span>(json_string):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;응답 앞뒤에 붙는 ```json 마크다운 표시를 제거해 순수 JSON 문자열만 남긴다.&quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">if</span> json_string<span style="color: #666">.</span>startswith(<span style="color: #BA2121">&#39;```json</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&#39;</span>):
+        json_string <span style="color: #666">=</span> json_string[<span style="color: #008000">len</span>(<span style="color: #BA2121">&#39;```json</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&#39;</span>):]   <span style="color: #3D7B7B; font-style: italic"># 앞의 ```json 제거</span>
+    <span style="color: #008000; font-weight: bold">if</span> json_string<span style="color: #666">.</span>endswith(<span style="color: #BA2121">&#39;</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">```&#39;</span>):
+        json_string <span style="color: #666">=</span> json_string[:<span style="color: #666">-</span><span style="color: #008000">len</span>(<span style="color: #BA2121">&#39;</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">```&#39;</span>)]       <span style="color: #3D7B7B; font-style: italic"># 뒤의 ``` 제거</span>
+    <span style="color: #008000; font-weight: bold">return</span> json_string
+
+cleaned <span style="color: #666">=</span> clean_json_string(result)
+
+<span style="color: #3D7B7B; font-style: italic"># try/except로 감싸는 이유: AI가 가끔 형식을 안 지킬 수 있기 때문</span>
+<span style="color: #008000; font-weight: bold">try</span>:
+    parsed <span style="color: #666">=</span> json<span style="color: #666">.</span>loads(cleaned)        <span style="color: #3D7B7B; font-style: italic"># 문자열 → 딕셔너리</span>
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;감성:&quot;</span>, parsed[<span style="color: #BA2121">&quot;sentiment&quot;</span>])
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;키워드:&quot;</span>, <span style="color: #BA2121">&quot;, &quot;</span><span style="color: #666">.</span>join(parsed[<span style="color: #BA2121">&quot;keywords&quot;</span>]))
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;요약:&quot;</span>, parsed[<span style="color: #BA2121">&quot;summary&quot;</span>])
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;근거:&quot;</span>, parsed[<span style="color: #BA2121">&quot;reasoning&quot;</span>])
+<span style="color: #008000; font-weight: bold">except</span> json<span style="color: #666">.</span>JSONDecodeError <span style="color: #008000; font-weight: bold">as</span> e:
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;JSON 파싱 실패:&quot;</span>, e)          <span style="color: #3D7B7B; font-style: italic"># 실패해도 프로그램이 멈추지 않게</span>
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;원본:&quot;</span>, cleaned)
+</code></pre></div>
+
+<p><code>try/except</code>는 <strong>예외 처리</strong> 문법입니다. 프로그래밍에서 가장 곤란한 상황은 서비스가 통째로 멈추는 것인데요, <code>try/except</code>로 감싸면 에러가 나도 <strong>시스템이 멈추지 않고 다음 작업을 이어서</strong> 처리할 수 있습니다. 리뷰 1,000개를 돌리다 한 개가 형식을 어겨도, 그 한 개만 건너뛰고 나머지를 마저 처리하게 되는 거죠. (이 "에러가 나도 멈추지 않게"가 5강 에러 처리의 핵심으로 이어집니다.)</p>
+<blockquote>
+<p>참고로 <code>```json</code> 자체를 막는 다른 방법도 있습니다. 프롬프트에 "앞에 json이라는 말을 붙이지 마"라고 지시하거나, 위처럼 코드로 제거하거나 — <strong>무엇을 할지(앞의 군더더기를 떼야 한다)를 알면 방법은 여러 가지</strong>입니다. <code>.replace()</code>로 간단히 지울 수도 있고요.</p>
+</blockquote>
+<p>이렇게 정제·파싱한 멀티태스크 함수는 반복문에 넣어 리뷰 여러 개를 줄줄이 분석할 수 있습니다. 구조화된 데이터로 받으니 통계를 내거나 시각화하기도 편하죠.</p>
+<h3 id="7">7. 오늘의 핵심 인사이트 — 프롬프트는 프로그램이다</h3>
+<p>오늘 배운 걸 한 문장으로 누르면: <strong>프롬프트를 잘 설계하면, AI가 복잡한 작업을 수행하는 하나의 프로그램이 됩니다.</strong></p>
+<table>
+<thead>
+<tr>
+<th>단순 프롬프트</th>
+<th>설계된 프롬프트</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>한 번에 하나씩 질문</td>
+<td>멀티태스크로 한 번에 여러 분석</td>
+</tr>
+<tr>
+<td>형식 없는 답변 → 후처리 어려움</td>
+<td>퓨샷으로 기준 제시, JSON으로 구조화</td>
+</tr>
+<tr>
+<td>결과만 받아 검증 불가</td>
+<td>CoT로 추론을 유도해 근거까지 확보</td>
+</tr>
+</tbody>
+</table>
+<p>프롬프트 엔지니어링은 <strong>코드 대신 우리의 말로 AI를 프로그래밍</strong>하는 것입니다. 새롭게 각광받는 영역이니, 손에 익도록 많이 연습해 두세요.</p>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>제로샷(Zero-shot)</td>
+<td>예시 없이 지시만 하는 방식. 넓은 탐색·브레인스토밍에 적합</td>
+</tr>
+<tr>
+<td>퓨샷(Few-shot)</td>
+<td>입력-출력 예시를 보여주고 지시. 기준을 못 박아 일관성↑ (예시 3~5개가 적당)</td>
+</tr>
+<tr>
+<td>생각의 사슬(CoT)</td>
+<td>"단계별로 생각해"로 추론 과정을 드러내기. 정확도↑ + 디버깅 용이</td>
+</tr>
+<tr>
+<td>멀티태스크 분석</td>
+<td>한 번 호출로 감성·키워드·요약·근거를 동시에 추출</td>
+</tr>
+<tr>
+<td>JSON 출력</td>
+<td>중괄호로 구조화된 형식. 후처리·통계·시각화가 쉬움</td>
+</tr>
+<tr>
+<td><code>json.loads()</code></td>
+<td>JSON 문자열을 파이썬 딕셔너리로 변환</td>
+</tr>
+<tr>
+<td><code>try</code>/<code>except</code></td>
+<td>예외 처리 문법. 에러가 나도 멈추지 않고 다음 작업 진행</td>
+</tr>
+<tr>
+<td>정제 함수(clean)</td>
+<td>응답 앞뒤의 <code>```json</code> 같은 군더더기를 떼 순수 JSON만 남기기</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>오늘의 세 기법은 곧 <strong>분석의 해상도</strong>를 끌어올리는 손잡이입니다. 퓨샷으로 <em>우리 게임만의 판정 기준</em>(예: "엔드 콘텐츠 부족 언급은 부정으로")을 못 박고, CoT로 <em>왜 그렇게 분류됐는지 근거</em>를 받아 두면, 리뷰 분석 결과를 회의 자리에서 "근거 있는 데이터"로 들이밀 수 있습니다. 특히 멀티태스크 분석은 리뷰 한 건에서 감성·키워드·요약을 한꺼번에 뽑으니, 패치 직후 폭증하는 리뷰를 <strong>하루치도 안 되는 비용으로 자동 분류</strong>할 수 있죠. 코딩은 AI가 하고, "어떤 기준으로 무엇을 물을지" 설계하는 건 도메인을 아는 기획자의 몫입니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>"퓨샷이 항상 제로샷보다 좋다"는 오해.</strong> 정해진 형식이 필요할 땐 퓨샷, 넓게 탐색할 땐 제로샷이 맞습니다. 목적에 맞춰 고르세요.</li>
+<li><strong>예시는 많을수록 좋다? 아닙니다.</strong> 예시가 늘수록 토큰 비용이 커집니다. 긍정·부정·혼합 각 1개씩, 3~5개면 충분합니다.</li>
+<li><strong>"JSON으로만 답해"라고 했으니 그대로 파싱된다? 아닙니다.</strong> 모델이 <code>```json</code>을 붙이거나 형식을 어길 수 있어, 정제 함수 + <code>try/except</code>가 필요합니다.</li>
+<li><strong>CoT는 느리고 비싸다는 점도 기억하세요.</strong> 추론 과정만큼 토큰을 더 씁니다. 간단한 작업엔 굳이 안 써도 됩니다.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li><strong>퓨샷</strong>: 예시를 보여주면 AI가 우리 기준을 파악해 <strong>일관된</strong> 결과를 냅니다.</li>
+<li><strong>CoT</strong>: "단계별로 생각해" 한마디로 <strong>정확도가 오르고</strong>, 추론 과정이 <strong>디버깅 도구</strong>가 됩니다.</li>
+<li><strong>멀티태스크 + JSON</strong>: 한 번 호출로 여러 분석을 받고, 구조화된 출력으로 <strong>후처리를 자동화</strong>합니다. 단, 정제 함수와 <code>try/except</code>로 형식 흔들림에 대비하세요.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>다음 18차시는 <strong>프로젝트 시간</strong>입니다(영상 없이 직접 실습). 오늘 배운 퓨샷·CoT·멀티태스크 기법을 실제 리뷰 데이터에 적용해, 여러 리뷰를 반복 처리하고 결과를 정리·저장하는 것까지 해봅니다. 1주차에 직접 수집해 CSV로 저장한 <strong>여러분의 리뷰 데이터</strong>를 넣어 보길 권합니다 — 샘플보다 훨씬 의미 있는 결과가 나옵니다. 그리고 이어지는 19차시(감성 분석 심화)에서는 오늘의 "positive/negative/mixed"를 넘어, <strong>무엇에 대한 어떤 감정인지</strong>를 더 세밀하게 쪼개는 방법으로 나아갑니다.</p>
+</article>
+<div class="pager"><span class="spacer"></span><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><a class="next" href="2강.html"><span class="lbl">다음 →</span><span class="ttl">2강 — 감성 분석 심화 (다차원 감성 · ABSA)</span></a></div>
+</div>
+</body>
+</html>

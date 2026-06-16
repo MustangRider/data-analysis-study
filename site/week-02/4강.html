@@ -154,7 +154,7 @@ hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
 <article class="md">
 <h1 id="4">4강 — 샘플링과 대표성</h1>
 <blockquote>
-<p>2주차 4강 / 13차시 (25분 10초) · 강의에 없던 보강 설명은 "(보강)"으로 표시합니다.</p>
+<p>2주차 4강 / 13차시 (25분 10초)</p>
 </blockquote>
 <h2 id="_1">🎯 이 강의로 답할 질문</h2>
 <ul>
@@ -166,7 +166,7 @@ hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
 <h2 id="_2">📖 해설</h2>
 <p>지난 시간에 임베딩을 배웠죠. 그런데 고민이 생깁니다. 리뷰가 10만 건이면 전부 임베딩하는 데 API 호출 10만 번, 저장 공간 300MB 이상, 시간도 엄청나게 듭니다. <strong>정말 다 분석해야 할까요?</strong> 통계학은 "아니오"라고 답합니다. <strong>잘 뽑은 1,000건이 10만 건과 거의 같은 결론</strong>을 냅니다. 오늘 배울 <strong>샘플링</strong>은 비용을 90% 이상 줄이면서 정확도는 95%를 유지하는 방법이에요.</p>
 <h3 id="1">1. 전수조사는 왜 문제인가</h3>
-<p>전부 다 분석하는 <strong>전수조사</strong>의 문제 세 가지입니다.</p>
+<p>지난 시간 임베딩을 다시 떠올려 보면, 텍스트 한 건을 768차원 벡터로 바꾸면 벡터 하나가 약 3KB를 차지했습니다. 그러면 10만 건은 <code>10만 × 3KB ≈ 300MB</code>가 되고, API 호출 비용도 건수에 정비례해 늘어납니다. <strong>데이터가 많을수록 비용이 비례해서 커진다</strong>는 게 핵심이에요. 전부 다 분석하는 <strong>전수조사</strong>의 문제는 여기서 출발하는 세 가지입니다.</p>
 <ol>
 <li><strong>비용 폭발</strong> — 임베딩 API를 10만 번 호출하면 수만 원, 저장 300MB 이상. 매달 분석하면 연 수십만~수백만 원, 규모에 따라 수천만 원까지 갑니다.</li>
 <li><strong>시간</strong> — 10만 건 처리에 API 호출만 몇 시간. 실시간으로 리뷰 트렌드를 보고 싶다면 이 지연이 발목을 잡습니다.</li>
@@ -185,8 +185,9 @@ hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
 <ul>
 <li><strong>모집단(population)</strong> = 큰 냄비의 국 전체 = 리뷰 10만 건</li>
 <li><strong>표본(sample)</strong> = 한 숟가락 = 우리가 뽑은 1,000건</li>
+<li><strong>추정(estimation)</strong> = 한 숟갈 맛으로 "국 전체가 짜다/싱겁다"를 판단하는 것 = 표본으로 전체 경향을 미루어 아는 것</li>
 </ul>
-<p>잘 섞인 국이면 한 숟갈로 전체 간을 알 수 있듯, <strong>잘 뽑은 표본이면 전체 경향을 알 수 있습니다.</strong> 문제는 "어떻게 잘 섞느냐 = 어떻게 잘 뽑느냐"예요.</p>
+<p>샘플링 분석은 늘 이 <strong>세 단계</strong>로 흐릅니다 — 모집단(전체)에서 표본(일부)을 뽑고, 그 표본으로 전체를 <strong>추정</strong>합니다. 잘 섞인 국이면 한 숟갈로 전체 간을 알 수 있듯, <strong>잘 뽑은 표본이면 일부로 전체를 알 수 있습니다.</strong> 문제는 "어떻게 잘 섞느냐 = 어떻게 잘 뽑느냐"예요.</p>
 <table>
 <thead>
 <tr>
@@ -264,7 +265,7 @@ hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
 <td>신뢰할 수준, 비즈니스 의사결정 충분</td>
 </tr>
 <tr>
-<td>10만개</td>
+<td>10,000개</td>
 <td>±1%</td>
 <td>—</td>
 <td>더 정밀하나 보통 불필요(비용 10배)</td>
@@ -336,6 +337,10 @@ sample <span style="color: #666">=</span> (
 <td>거기서 뽑은 일부 (1,000건)</td>
 </tr>
 <tr>
+<td>추정(estimation)</td>
+<td>표본으로 전체 경향을 미루어 판단하는 것 (한 숟갈로 국 전체 간 보기)</td>
+</tr>
+<tr>
 <td>대표성</td>
 <td>표본이 전체의 비율·특성을 잘 반영하는 정도</td>
 </tr>
@@ -371,7 +376,6 @@ sample <span style="color: #666">=</span> (
 <ul>
 <li><strong>"데이터는 많을수록 좋다"가 항상 옳진 않습니다.</strong> 편향된 데이터가 많으면 틀린 결론을 더 확신하게 됩니다. <strong>잘 뽑은 1,000건 &gt; 편향된 10만 건.</strong></li>
 <li><strong>샘플링은 "대충"이 아니라 과학적 방법입니다.</strong> 대표성이 정확도를 결정해요.</li>
-<li>(용어 정리) 전사에서 흔들린 표기·수치 — <code>정밀도</code>(친밀도 아님), 샘플 크기 100/1,000 혼동은 문맥상 <strong>1,000</strong>, <code>stratified sampling</code>(층화), <code>random_state</code>(랜덤 시드).</li>
 </ul>
 <h2 id="30">✅ 30초 정리</h2>
 <ol>

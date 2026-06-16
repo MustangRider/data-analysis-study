@@ -154,7 +154,7 @@ hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
 <article class="md">
 <h1 id="3-google-colab">3강 — 개발 환경 세팅 (Google Colab) &amp; 임베딩 실습</h1>
 <blockquote>
-<p>3강 (24분 49초) · 강의에 없던 보강 설명은 "(보강)"으로 표시합니다.</p>
+<p>3강 (24분 49초)</p>
 </blockquote>
 <h2 id="_1">🎯 이 강의로 답할 질문</h2>
 <ul>
@@ -166,13 +166,21 @@ hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
 <h3 id="1-google-colab">1. Google Colab — 브라우저에서 바로 파이썬</h3>
 <p>코딩을 하려면 환경이 필요하죠. 그런데 내 컴퓨터에 뭘 깔 필요 없이 <strong>Google Colab</strong>을 쓰면 됩니다.
 - 브라우저에서 파이썬을 바로 실행하는 무료 서비스예요. <strong>설치도 필요 없고, 내 컴퓨터 사양과도 무관</strong>합니다. 인터넷만 되면 OK고, <strong>구글 계정</strong>만 있으면 돼요. (GPU도 무료로 쓸 수 있지만, 이 과정엔 CPU로 충분합니다.)
-- 접속은 이렇게 합니다 — 검색창에 "Colab" → 구글 로그인 → "새 노트".
+- 한마디로 <strong>"구글 문서(Docs) + 파이썬 코딩 환경"</strong>이라고 생각하면 쉽습니다. 평소 쓰던 구글 문서처럼 브라우저에서 열어 작업하고, 작성한 노트는 구글 드라이브에 자동으로 저장돼요.
+- 접속은 이렇게 합니다 — 브라우저 주소창에 <strong>colab.research.google.com</strong> 입력(또는 검색창에 "Colab" 검색) → 구글 로그인 → "새 노트". (또는 <strong>Google Drive → 새로 만들기 → 더보기 → Colaboratory</strong>로도 새 노트를 만들 수 있어요.)
 - 우리는 과정 초반엔 Colab으로 개발하고, 나중에 <strong>앱(대시보드)을 만들 때는 내 PC에 파이썬을 설치</strong>해서 진행할 거예요.</p>
 <h3 id="2-cell">2. 셀(cell) 단위로 실행합니다</h3>
 <p>Colab은 <strong>셀</strong>이라는 코드 덩어리 단위로 실행해요. 빈칸(셀)에 코드를 적고 이렇게 실행합니다.
 - <strong>Ctrl+Enter</strong>: 그 셀 실행
 - <strong>Shift+Enter</strong>: 그 셀 실행 + 아래에 새 셀 추가</p>
-<p>첫 실습은 전통의 <code>print("Hello World")</code>예요. 괄호 안의 내용을 화면에 출력합니다. 처음 실행하면 잠깐 "연결 중"이 뜨고(하드웨어가 할당됩니다), 그 다음부터는 바로 실행돼요.</p>
+<p>셀에는 두 종류가 있어요.
+- <strong>코드 셀</strong>: 파이썬 코드를 적고 실행하는 칸 (실제 분석은 여기서 합니다)
+- <strong>텍스트 셀</strong>: 코드가 아니라 설명·메모를 적는 칸 (제목, 단계 설명 같은 걸 적어 두면 노트가 깔끔해집니다)</p>
+<p>첫 실습은 전통의 <code>print("안녕하세요!")</code>예요. 괄호 안의 내용을 화면에 그대로 출력합니다. 코드 셀에 적고 Ctrl+Enter를 누르면 바로 아래에 결과가 나와요. 처음 실행하면 잠깐 "연결 중"이 뜨고(하드웨어가 할당됩니다), 그 다음부터는 바로 실행돼요.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;안녕하세요!&quot;</span>)
+<span style="color: #3D7B7B; font-style: italic"># 예상 결과: 안녕하세요!</span>
+</code></pre></div>
+
 <h3 id="3">3. 라이브러리 = 남이 만들어 둔 코드(레고 블록)</h3>
 <p><strong>라이브러리</strong>는 다른 개발자가 미리 만들어 공개한 코드 모음입니다. 데이터 처리 코드를 <strong>처음부터 짤 필요 없이 가져다 조립</strong>하면 돼요.
 - 설치: <code>pip install 라이브러리이름</code>  (Colab 셀에서는 앞에 <code>!</code>를 붙여 <code>!pip install …</code>)
@@ -207,11 +215,35 @@ hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
 <blockquote>
 <p>pandas는 워낙 자주 써서 <code>import pandas as pd</code>처럼 <strong>별칭(pd)</strong>을 붙여 쓰는 게 관행이에요. 이후엔 <code>pd.…</code>로 부릅니다.</p>
 </blockquote>
-<h3 id="4-ai">4. "문법 암기"보다 "무엇을 할지 + AI에게 구체적으로 요청"</h3>
+<p>설치가 잘 됐는지 확인하고 싶으면 <strong>버전 번호를 출력</strong>해 보면 됩니다. 버전이 정상적으로 찍히면 그 라이브러리를 쓸 준비가 된 거예요.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 설치 (pandas는 Colab에 기본으로 깔려 있어서 보통 다시 설치하지 않아도 됩니다)</span>
+<span style="border: 1px solid #F00">!</span>pip install pandas requests
+
+<span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">pandas</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">as</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">pd</span>
+<span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;pandas 버전: </span><span style="color: #A45A77; font-weight: bold">{</span>pd<span style="color: #666">.</span>__version__<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)   <span style="color: #3D7B7B; font-style: italic"># 버전 번호가 찍히면 정상</span>
+</code></pre></div>
+
+<h3 id="4-pandas">4. pandas로 표 데이터 만들어 보기</h3>
+<p>pandas의 핵심은 <strong>DataFrame</strong>(데이터프레임)이라는 표 자료형이에요. 엑셀의 시트 한 장이라고 생각하면 됩니다. 우리가 다룰 게임 리뷰도 결국 "리뷰 글 + 별점"이 줄줄이 쌓인 표니까, 표를 만드는 감부터 잡아 봅시다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">pandas</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">as</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">pd</span>
+
+<span style="color: #3D7B7B; font-style: italic"># 딕셔너리(이름표가 붙은 묶음)로 열(column)을 정의합니다.</span>
+<span style="color: #3D7B7B; font-style: italic"># &#39;리뷰&#39; 열과 &#39;별점&#39; 열을 만들고, 각 열에 값을 리스트로 넣습니다.</span>
+data <span style="color: #666">=</span> {
+    <span style="color: #BA2121">&quot;리뷰&quot;</span>: [<span style="color: #BA2121">&quot;재미있어요&quot;</span>, <span style="color: #BA2121">&quot;별로예요&quot;</span>, <span style="color: #BA2121">&quot;최고입니다&quot;</span>],
+    <span style="color: #BA2121">&quot;별점&quot;</span>: [<span style="color: #666">5</span>, <span style="color: #666">2</span>, <span style="color: #666">5</span>],
+}
+
+df <span style="color: #666">=</span> pd<span style="color: #666">.</span>DataFrame(data)   <span style="color: #3D7B7B; font-style: italic"># 딕셔너리를 표(DataFrame)로 변환</span>
+<span style="color: #008000">print</span>(df)
+</code></pre></div>
+
+<p>이렇게 하면 리뷰와 별점이 나란히 정렬된 표가 출력됩니다. 앞으로 수집한 리뷰 데이터도 전부 이 DataFrame 형태로 다루게 돼요.</p>
+<h3 id="5-ai">5. "문법 암기"보다 "무엇을 할지 + AI에게 구체적으로 요청"</h3>
 <p>파이썬을 처음 하면 변수·반복문·함수·클래스 같은 문법이 잔뜩 보여서 막막하죠. 그런데 여기서 가장 중요한 건 이겁니다.
 - <strong>복잡한 문법을 다 외우지 않아도</strong> 됩니다. Colab에는 <strong>AI 도구(Gemini)</strong>가 붙어 있어서, "판다스 처음인데 대표 샘플 코드 작성해줘"처럼 <strong>자연어로 요청</strong>하면 코드를 만들어줘요.
 - 단, <strong>AI를 전적으로만 믿으면 안 됩니다.</strong> ① <em>내가 무엇을 하고 싶은지</em> 먼저 정하고 → ② AI로 구현하고 → ③ AI가 어떻게 짰는지 살펴보며 감각을 키우세요. <strong>요청은 구체적일수록</strong> 결과가 좋습니다.</p>
-<h3 id="5-2">5. 임베딩 실습 — 2강 이론을 코드로 (직접 실행)</h3>
+<h3 id="6-2">6. 임베딩 실습 — 2강 이론을 코드로 (직접 실행)</h3>
 <p>2강에서 "단어 → 숫자 좌표(임베딩)"를 배웠죠. 이번엔 <strong>sentence-transformers</strong> 라이브러리로 직접 변환해 봅시다.
 아래 코드를 <strong>Colab 셀에 차례로 붙여넣어</strong> 직접 확인해 보세요. (실행만 하려면 자동 생성된 <code>notebooks/3강_실습.ipynb</code>를 열면 됩니다.)</p>
 <p><strong>① 라이브러리 설치</strong></p>
@@ -242,8 +274,31 @@ model <span style="color: #666">=</span> SentenceTransformer(<span style="color:
 </code></pre></div>
 
 <p>실행하면 "행복 ↔ 즐거움"이 가장 높게 나옵니다. 2강에서 배운 <strong>"가까우면 비슷"</strong>이 코드로 확인되는 거예요.</p>
+<p><strong>⑤ 단어가 아니라 문장으로</strong> — 실제 리뷰에 더 가까운 실습</p>
+<p>우리가 분석할 건 단어 하나가 아니라 <strong>리뷰 문장</strong>이죠. 문장 여러 개를 한꺼번에 임베딩해서 서로의 유사도를 모두 비교해 봅시다. 이번엔 문장 의미를 잘 잡아 주는 <code>paraphrase-multilingual-MiniLM-L12-v2</code> 모델을 써 볼게요. (앞의 모델을 그대로 써도 패턴은 비슷하게 나옵니다.)</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">sentence_transformers</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> SentenceTransformer, util
+
+model <span style="color: #666">=</span> SentenceTransformer(<span style="color: #BA2121">&quot;paraphrase-multilingual-MiniLM-L12-v2&quot;</span>)
+
+sentences <span style="color: #666">=</span> [
+    <span style="color: #BA2121">&quot;이 게임 정말 재미있어요&quot;</span>,
+    <span style="color: #BA2121">&quot;플레이가 너무 즐거워요&quot;</span>,
+    <span style="color: #BA2121">&quot;오늘 날씨가 좋네요&quot;</span>,
+]
+
+embeddings <span style="color: #666">=</span> model<span style="color: #666">.</span>encode(sentences)   <span style="color: #3D7B7B; font-style: italic"># 문장 3개를 한 번에 임베딩</span>
+
+<span style="color: #3D7B7B; font-style: italic"># 모든 문장 쌍의 유사도를 출력 (i보다 뒤에 있는 j만 비교해 중복을 피함)</span>
+<span style="color: #008000; font-weight: bold">for</span> i <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">range</span>(<span style="color: #008000">len</span>(sentences)):
+    <span style="color: #008000; font-weight: bold">for</span> j <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">range</span>(i <span style="color: #666">+</span> <span style="color: #666">1</span>, <span style="color: #008000">len</span>(sentences)):
+        sim <span style="color: #666">=</span> util<span style="color: #666">.</span>cos_sim(embeddings[i], embeddings[j])<span style="color: #666">.</span>item()
+        <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;&#39;</span><span style="color: #A45A77; font-weight: bold">{</span>sentences[i]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&#39; vs &#39;</span><span style="color: #A45A77; font-weight: bold">{</span>sentences[j]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&#39;&quot;</span>)
+        <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;  → 유사도: </span><span style="color: #A45A77; font-weight: bold">{</span>sim<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">.3f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">&quot;</span>)
+</code></pre></div>
+
+<p>게임에 대한 두 문장("재미있어요" ↔ "즐거워요")은 유사도가 높게(예: 0.8 안팎) 나오고, 게임과 무관한 "날씨" 문장과는 낮게(예: 0.2 안팎) 나옵니다. <strong>게임 관련 문장끼리는 가깝고, 주제가 다른 문장과는 멀다</strong> — 임베딩이 단어를 넘어 문장 의미까지 숫자로 잡아낸다는 걸 보여 주는 결과예요.</p>
 <blockquote>
-<p>⚠️ 유사도 <strong>숫자 값은 모델마다 다릅니다.</strong> 예시로 든 값(행복-즐거움 0.88 등)과 똑같지 않아도 정상이에요 — 중요한 건 <em>"행복-즐거움 &gt; 행복-슬픔"</em> 같은 <strong>순서·패턴</strong>입니다.</p>
+<p>⚠️ 유사도 <strong>숫자 값은 모델마다, 실행 환경마다 다릅니다.</strong> 위에 적은 값(0.8·0.2 등)과 똑같지 않아도 정상이에요 — 중요한 건 <em>"게임 문장끼리 &gt; 게임 vs 날씨"</em> 같은 <strong>순서·패턴</strong>입니다.</p>
 <p>활용: 임베딩으로 의미의 비슷함을 숫자로 잴 수 있으면 → <strong>비슷한 리뷰 그룹화, 검색</strong>에 쓸 수 있어요.</p>
 </blockquote>
 <h2 id="_3">🔑 핵심 용어</h2>
@@ -276,6 +331,10 @@ model <span style="color: #666">=</span> SentenceTransformer(<span style="color:
 <td>설치한 라이브러리를 불러와 쓰겠다는 선언</td>
 </tr>
 <tr>
+<td>DataFrame</td>
+<td>pandas의 표 자료형(엑셀 시트 한 장). 리뷰·별점 같은 데이터를 담는 기본 그릇</td>
+</tr>
+<tr>
 <td>sentence-transformers</td>
 <td>단어/문장을 임베딩으로 바꿔 주는 라이브러리</td>
 </tr>
@@ -287,13 +346,12 @@ model <span style="color: #666">=</span> SentenceTransformer(<span style="color:
 <ul>
 <li><strong>임베딩 차원이 "512"로 고정인 게 아닙니다.</strong> 이번 실습 모델이 512차원일 뿐, 모델마다 달라요(2강의 768·1536처럼).</li>
 <li><strong>AI가 짠 코드도 에러가 납니다.</strong> 실습 중에도 에러가 등장할 수 있어요 — "AI는 아직 완벽하지 않다"의 실물이죠. 그래서 검증하는 눈이 필요합니다.</li>
-<li>(용어) 발음이 헷갈리기 쉬운데, 코드 도우미로 쓰는 건 <strong>Gemini(제미나이)</strong>입니다.</li>
 </ul>
 <h2 id="30">✅ 30초 정리</h2>
 <ol>
 <li><strong>Colab</strong>: 설치 없이 브라우저에서 파이썬을 <strong>셀</strong> 단위로 실행합니다.</li>
-<li><strong>라이브러리</strong>(pandas·requests·openai·streamlit)는 <code>pip install</code>로 깔고 <code>import</code>로 씁니다 — 직접 다 만들지 않아요.</li>
-<li><strong>sentence-transformers</strong>로 단어를 임베딩으로 바꾸고 유사도를 재서, 2강 이론(가까우면 비슷)을 코드로 확인했습니다.</li>
+<li><strong>라이브러리</strong>(pandas·requests·openai·streamlit)는 <code>pip install</code>로 깔고 <code>import</code>로 씁니다 — 직접 다 만들지 않아요. pandas의 <strong>DataFrame</strong>으로 리뷰·별점 표도 만들어 봤습니다.</li>
+<li><strong>sentence-transformers</strong>로 단어와 문장을 임베딩으로 바꾸고 유사도를 재서, 2강 이론(가까우면 비슷)을 코드로 확인했습니다.</li>
 </ol>
 <h2 id="_6">▶️ 다음 강 연결</h2>
 <p>이제 환경과 도구가 준비됐어요. 그럼 분석할 <strong>데이터는 어디서 가져올까요?</strong> → <strong>4강: 데이터 수집 3가지 방법(공개셋·API·스크래핑)과 Steam API</strong>.</p>

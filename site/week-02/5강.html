@@ -154,7 +154,7 @@ hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
 <article class="md">
 <h1 id="5-llm-api-openrouter">5강 — LLM API 연동 (OpenRouter)</h1>
 <blockquote>
-<p>2주차 5강 / 15차시 (25분 11초) · 강의에 없던 보강 설명은 "(보강)"으로 표시합니다.</p>
+<p>2주차 5강 / 15차시 (25분 11초)</p>
 </blockquote>
 <h2 id="_1">🎯 이 강의로 답할 질문</h2>
 <ul>
@@ -246,6 +246,13 @@ hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
 <span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">google.colab</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> userdata
 api_key <span style="color: #666">=</span> userdata<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;OPENROUTER_API_KEY&#39;</span>)   <span style="color: #3D7B7B; font-style: italic"># Secrets에 저장한 그 이름</span>
 
+<span style="color: #3D7B7B; font-style: italic"># 키가 제대로 불려왔는지 먼저 확인한다. (앞 15자만 보여 키 전체는 가린다)</span>
+<span style="color: #3D7B7B; font-style: italic"># &#39;OPENROUTER_API_KEY&#39; 철자가 틀렸거나 &#39;노트북 액세스&#39; 토글을 안 켜면 None이 와서 여기서 걸린다.</span>
+<span style="color: #008000; font-weight: bold">if</span> api_key:
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;키 확인: </span><span style="color: #A45A77; font-weight: bold">{</span>api_key[:<span style="color: #666">15</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">...&quot;</span>)
+<span style="color: #008000; font-weight: bold">else</span>:
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;API 키가 설정되지 않았습니다. Colab Secrets의 이름과 노트북 액세스 토글을 확인하세요.&quot;</span>)
+
 <span style="color: #3D7B7B; font-style: italic"># ③ 클라이언트 설정</span>
 <span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">openai</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> OpenAI
 client <span style="color: #666">=</span> OpenAI(
@@ -267,6 +274,29 @@ response <span style="color: #666">=</span> client<span style="color: #666">.</s
 <span style="color: #008000">print</span>(response<span style="color: #666">.</span>usage<span style="color: #666">.</span>total_tokens)
 </code></pre></div>
 
+<p>호출이 끝나면 한 번에 정리해서 확인하는 습관을 들이면 좋습니다. 답변과 토큰 수를 함께 출력해 두면, 질문을 바꿔 가며 실험할 때 비용 감각을 같이 익힐 수 있어요.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 한 응답에서 답변과 토큰 수를 같이 출력 — 실험할 때 매번 이 형식으로 확인하면 편하다</span>
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;=== 응답 정보 ===&quot;</span>)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;AI 답변: </span><span style="color: #A45A77; font-weight: bold">{</span>response<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;사용한 토큰: </span><span style="color: #A45A77; font-weight: bold">{</span>response<span style="color: #666">.</span>usage<span style="color: #666">.</span>total_tokens<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">개&quot;</span>)
+</code></pre></div>
+
+<p>같은 모델로 <strong>질문만 바꿔 가며</strong> 여러 번 시도해 보고 싶다면, 질문을 변수로 빼 두면 편합니다. <code>content</code>에 넣는 문자열만 바꾸면 되니까, 게임 리뷰를 하나씩 넣어 보며 AI 반응을 살피기에 좋아요.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 질문을 변수로 빼 두면, 이 값만 바꿔서 같은 코드로 계속 실험할 수 있다</span>
+my_question <span style="color: #666">=</span> <span style="color: #BA2121">&quot;게임 리뷰 분석이 왜 중요한가요?&quot;</span>
+
+response <span style="color: #666">=</span> client<span style="color: #666">.</span>chat<span style="color: #666">.</span>completions<span style="color: #666">.</span>create(
+    model<span style="color: #666">=</span><span style="color: #BA2121">&quot;google/gemini-2.0-flash-exp:free&quot;</span>,   <span style="color: #3D7B7B; font-style: italic"># 모델은 그대로 두고 질문만 바꾼다</span>
+    messages<span style="color: #666">=</span>[
+        {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;user&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: my_question}
+    ],
+)
+<span style="color: #008000">print</span>(response<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content)
+</code></pre></div>
+
+<blockquote>
+<p>출력 내용은 어떤 모델을 쓰는지, 그날 그날의 응답에 따라 매번 조금씩 달라집니다. 토큰 수나 답변 문장이 위 예시와 똑같지 않아도 정상이에요.</p>
+</blockquote>
 <h3 id="6-rate-limit">6. 모델 교체 &amp; rate limit</h3>
 <p>위 코드에서 <strong><code>model</code> 칸만 바꾸면</strong> 여러 모델을 쓸 수 있습니다. 그런데 인기 있는 무료 모델(예: Gemini 2.0)은 <strong>사용량이 다 차서 <code>rate limit error</code>(사용량 초과)</strong> 가 날 때가 있어요. 당황하지 말고 OpenRouter 사이트의 모델 목록에서 <strong><code>free</code>로 검색</strong> → 다른 무료 모델(예: Mistral) 선택 → <strong>모델 ID 복사</strong> → <code>model</code> 칸에 붙여넣기 하면 됩니다. 이게 OpenRouter의 힘이에요. 외국 모델이 대다수지만 한국어도 대체로 잘 됩니다.</p>
 <h3 id="7">7. 응답 구조와 토큰</h3>
@@ -324,7 +354,6 @@ response <span style="color: #666">=</span> client<span style="color: #666">.</s
 <ul>
 <li><strong>API 키를 코드에 직접 적지 마세요.</strong> 노트북을 공유하면 키가 통째로 새어 나가 비용 폭탄을 맞을 수 있습니다. <strong>Colab Secrets</strong>를 쓰세요.</li>
 <li><strong>무료 모델이 안 될 때는 고장이 아닙니다.</strong> <code>rate limit</code>이면 다른 무료 모델로 바꾸면 됩니다.</li>
-<li>(용어 정리) 전사에서 흔들린 표기 — <code>OpenRouter</code>, <code>OpenAI</code>, <code>Claude</code>(Anthropic), <code>Gemini</code>, <code>Grok</code>(xAI), <code>Secrets</code>(시크릿), <code>base_url</code>, <code>chat.completions.create</code>, <code>Mistral</code>, <code>rate limit error</code>.</li>
 </ul>
 <h2 id="30">✅ 30초 정리</h2>
 <ol>

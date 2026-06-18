@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3강 — 시계열 분석과 트렌드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-04 · 3강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="3">3강 — 시계열 분석과 트렌드</h1>
+<blockquote>
+<p>3강 (28차시)</p>
+</blockquote>
+<h2 id="_1">🎯 학습 목표</h2>
+<ul>
+<li><strong>전체 분석과 시계열 분석의 차이</strong>를 설명하고, 왜 시간 축이 필요한지 안다</li>
+<li>리뷰를 <strong>월별로 집계</strong>해 시계열 데이터로 만들 수 있다</li>
+<li><strong>이동 평균</strong>으로 노이즈를 걷어내고 트렌드를 파악할 수 있다</li>
+<li><strong>변화 지점(change point)</strong>을 감지해 원인 분석의 출발점으로 삼을 수 있다</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<h3 id="1-65">1. "긍정 65%"는 좋은 걸까요?</h3>
+<p>PM이 "우리 게임 평가 어때요?" 하고 묻습니다. "긍정 65%입니다"라고 답하면 될까요? 잠깐, 만약 <strong>6개월 전에는 85%였다면요?</strong> 25%나 떨어진 거잖아요. 그러면 "좋아요"가 아니라 "큰일"입니다. 핵심은 이겁니다. <strong>같은 65%라도 오르는 중인지 떨어지는 중인지에 따라 의미가 완전히 달라집니다.</strong></p>
+<p>지금까지 우리는 리뷰를 <strong>한 덩어리</strong>로 봤습니다. "전체 긍정 65%, 부정 25%" 식으로요. 단순하고 직관적이지만, <strong>변화가 보이지 않습니다.</strong> 그냥 "평가가 좋네요" 하고 끝나죠. <strong>시계열 분석</strong>은 시간별로 쪼개서 봅니다. "1월엔 80%였는데 6월엔 50%로 떨어졌다"면 "업데이트 후 급락했네"라는 인사이트가 나옵니다. 같은 데이터라도 시간 축을 더하면 새로운 것이 보입니다.</p>
+<p>시계열 분석이 있으면 이런 질문에 데이터로 답할 수 있습니다.</p>
+<table>
+<thead>
+<tr>
+<th>질문</th>
+<th>시계열로 할 수 있는 것</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>업데이트 반응이 어땠나요?</td>
+<td>업데이트 전후 감성 비교</td>
+</tr>
+<tr>
+<td>언제부터 평가가 나빠졌나요?</td>
+<td>감성 하락 시점 특정</td>
+</tr>
+<tr>
+<td>이벤트 효과가 있었나요?</td>
+<td>이벤트 기간 전후 비교</td>
+</tr>
+<tr>
+<td>요즘 트렌드가 어떤가요?</td>
+<td>최근 N개월 추이 확인</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2">2. 시계열 데이터란 무엇인가</h3>
+<p><strong>시계열 데이터</strong>는 간단히 <strong>시간 순서대로 정렬된 데이터</strong>입니다. 핵심은 각 데이터에 <strong>날짜·시간 정보</strong>가 있어야 한다는 것. 우리가 쓰는 Steam 리뷰 데이터에는 <code>timestamp_created</code>(리뷰가 작성된 시간)라는 필드가 있어서, 이걸 활용하면 <strong>일별·주별·월별</strong>로 집계할 수 있습니다.</p>
+<table>
+<thead>
+<tr>
+<th>월</th>
+<th>리뷰 수</th>
+<th>긍정 비율</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-01</td>
+<td>150</td>
+<td>75%</td>
+</tr>
+<tr>
+<td>2026-02</td>
+<td>180</td>
+<td>72%</td>
+</tr>
+<tr>
+<td>2026-03</td>
+<td>200</td>
+<td>68%</td>
+</tr>
+<tr>
+<td>2026-04</td>
+<td>350</td>
+<td>45% ← 무슨 일이?</td>
+</tr>
+</tbody>
+</table>
+<p>4월에 리뷰가 급증하면서 긍정률이 뚝 떨어졌네요. 뭔가 사건이 있었던 겁니다.</p>
+<p><strong>다이어트 체중 기록</strong>으로 비유해 봅시다. "올해 평균 체중 70kg"은 별 의미가 없습니다. 하지만 "1월 75kg → 6월 68kg → 현재 70kg"이라면 인사이트가 있죠. 감량에 성공했다가 반등했으니 다시 관리가 필요하다는. 리뷰 감성도 똑같습니다. <strong>변화의 흐름</strong>을 봐야 의미 있는 인사이트가 나옵니다.</p>
+<h3 id="3_1">3. 시뮬레이션 데이터 만들기</h3>
+<p>실제 리뷰 데이터가 없으니, 현실적인 시나리오로 시뮬레이션을 만들어 연습하겠습니다. <strong>시나리오</strong>: 어떤 게임이 3월에 큰 업데이트를 했는데 버그가 많아 부정 리뷰가 급증했고, 5월 핫픽스 후 회복한다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># ① 환경 준비 (이 강의 첫 셀에서 한 번만)</span>
+<span style="border: 1px solid #F00">!</span>pip install openai <span style="color: #666">-</span>q
+
+<span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">json</span>
+<span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">re</span>
+<span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">random</span>
+<span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">datetime</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> datetime   <span style="color: #3D7B7B; font-style: italic"># 오늘 주제가 &#39;시간&#39;이라 새로 등장 — 파이썬 기본 시간 처리 라이브러리</span>
+<span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">collections</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> defaultdict
+<span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">google.colab</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> userdata
+<span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">openai</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> OpenAI
+
+<span style="color: #3D7B7B; font-style: italic"># 시각화 (없으면 텍스트로 대체)</span>
+<span style="color: #008000; font-weight: bold">try</span>:
+    <span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">matplotlib.pyplot</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">as</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">plt</span>
+    plt<span style="color: #666">.</span>rcParams[<span style="color: #BA2121">&#39;font.family&#39;</span>] <span style="color: #666">=</span> <span style="color: #BA2121">&#39;DejaVu Sans&#39;</span>
+    plt<span style="color: #666">.</span>rcParams[<span style="color: #BA2121">&#39;axes.unicode_minus&#39;</span>] <span style="color: #666">=</span> <span style="color: #008000; font-weight: bold">False</span>
+    HAS_MPL <span style="color: #666">=</span> <span style="color: #008000; font-weight: bold">True</span>
+<span style="color: #008000; font-weight: bold">except</span> <span style="color: #CB3F38; font-weight: bold">ImportError</span>:
+    HAS_MPL <span style="color: #666">=</span> <span style="color: #008000; font-weight: bold">False</span>
+
+MODEL <span style="color: #666">=</span> <span style="color: #BA2121">&quot;mistralai/devstral-2512:free&quot;</span>
+api_key <span style="color: #666">=</span> userdata<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;OPENROUTER_API_KEY&#39;</span>)
+client <span style="color: #666">=</span> OpenAI(base_url<span style="color: #666">=</span><span style="color: #BA2121">&quot;https://openrouter.ai/api/v1&quot;</span>, api_key<span style="color: #666">=</span>api_key)
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">clean_json_response</span>(text):
+    text <span style="color: #666">=</span> text<span style="color: #666">.</span>strip()
+    <span style="color: #008000; font-weight: bold">if</span> <span style="color: #BA2121">&#39;```json&#39;</span> <span style="color: #A2F; font-weight: bold">in</span> text:
+        m <span style="color: #666">=</span> re<span style="color: #666">.</span>search(<span style="color: #BA2121">r&#39;```json\s*([\s\S]*?)\s*```&#39;</span>, text)
+        <span style="color: #008000; font-weight: bold">if</span> m: <span style="color: #008000; font-weight: bold">return</span> m<span style="color: #666">.</span>group(<span style="color: #666">1</span>)<span style="color: #666">.</span>strip()
+    <span style="color: #008000; font-weight: bold">if</span> <span style="color: #BA2121">&#39;```&#39;</span> <span style="color: #A2F; font-weight: bold">in</span> text:
+        m <span style="color: #666">=</span> re<span style="color: #666">.</span>search(<span style="color: #BA2121">r&#39;```\s*([\s\S]*?)\s*```&#39;</span>, text)
+        <span style="color: #008000; font-weight: bold">if</span> m: <span style="color: #008000; font-weight: bold">return</span> m<span style="color: #666">.</span>group(<span style="color: #666">1</span>)<span style="color: #666">.</span>strip()
+    m <span style="color: #666">=</span> re<span style="color: #666">.</span>search(<span style="color: #BA2121">r&#39;(\{[\s\S]*\}|\[[\s\S]*\])&#39;</span>, text)
+    <span style="color: #008000; font-weight: bold">return</span> m<span style="color: #666">.</span>group(<span style="color: #666">1</span>)<span style="color: #666">.</span>strip() <span style="color: #008000; font-weight: bold">if</span> m <span style="color: #008000; font-weight: bold">else</span> text
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">call_llm</span>(system_prompt, user_message):
+    res <span style="color: #666">=</span> client<span style="color: #666">.</span>chat<span style="color: #666">.</span>completions<span style="color: #666">.</span>create(
+        model<span style="color: #666">=</span>MODEL,
+        messages<span style="color: #666">=</span>[{<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;system&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: system_prompt},
+                  {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;user&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: user_message}],
+    )
+    <span style="color: #008000; font-weight: bold">return</span> res<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">call_llm_json</span>(system_prompt, user_message):
+    <span style="color: #008000; font-weight: bold">return</span> json<span style="color: #666">.</span>loads(clean_json_response(call_llm(system_prompt, user_message)))
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;준비 완료!&quot;</span>)
+</code></pre></div>
+
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">generate_monthly_data</span>():
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;월별 감성 데이터를 시나리오에 맞춰 생성.</span>
+<span style="color: #BA2121; font-style: italic">    1-2월 안정(긍정 65% 전후) → 3-4월 위기(45%) → 5-6월 회복(60%↑).&quot;&quot;&quot;</span>
+    base_rates <span style="color: #666">=</span> {<span style="color: #666">1</span>: <span style="color: #666">65</span>, <span style="color: #666">2</span>: <span style="color: #666">67</span>, <span style="color: #666">3</span>: <span style="color: #666">45</span>, <span style="color: #666">4</span>: <span style="color: #666">47</span>, <span style="color: #666">5</span>: <span style="color: #666">58</span>, <span style="color: #666">6</span>: <span style="color: #666">63</span>}   <span style="color: #3D7B7B; font-style: italic"># 월별 기본 긍정률(%)</span>
+    data <span style="color: #666">=</span> []
+    <span style="color: #008000; font-weight: bold">for</span> month <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">range</span>(<span style="color: #666">1</span>, <span style="color: #666">7</span>):
+        total <span style="color: #666">=</span> random<span style="color: #666">.</span>randint(<span style="color: #666">180</span>, <span style="color: #666">220</span>) <span style="color: #008000; font-weight: bold">if</span> month <span style="color: #A2F; font-weight: bold">in</span> (<span style="color: #666">3</span>, <span style="color: #666">4</span>) <span style="color: #008000; font-weight: bold">else</span> random<span style="color: #666">.</span>randint(<span style="color: #666">120</span>, <span style="color: #666">160</span>)
+        rate <span style="color: #666">=</span> <span style="color: #008000">max</span>(<span style="color: #666">30</span>, <span style="color: #008000">min</span>(<span style="color: #666">80</span>, base_rates[month] <span style="color: #666">+</span> random<span style="color: #666">.</span>randint(<span style="color: #666">-3</span>, <span style="color: #666">3</span>)))   <span style="color: #3D7B7B; font-style: italic"># 약간의 노이즈</span>
+        positive <span style="color: #666">=</span> <span style="color: #008000">int</span>(total <span style="color: #666">*</span> rate <span style="color: #666">/</span> <span style="color: #666">100</span>)
+        neutral <span style="color: #666">=</span> <span style="color: #008000">int</span>((total <span style="color: #666">-</span> positive) <span style="color: #666">*</span> <span style="color: #666">0.3</span>)
+        negative <span style="color: #666">=</span> total <span style="color: #666">-</span> positive <span style="color: #666">-</span> neutral
+        data<span style="color: #666">.</span>append({<span style="color: #BA2121">&#39;month_name&#39;</span>: <span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>month<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">월&quot;</span>, <span style="color: #BA2121">&#39;total&#39;</span>: total,
+                     <span style="color: #BA2121">&#39;positive&#39;</span>: positive, <span style="color: #BA2121">&#39;negative&#39;</span>: negative, <span style="color: #BA2121">&#39;neutral&#39;</span>: neutral,
+                     <span style="color: #BA2121">&#39;positive_rate&#39;</span>: <span style="color: #008000">round</span>(positive <span style="color: #666">/</span> total <span style="color: #666">*</span> <span style="color: #666">100</span>, <span style="color: #666">1</span>)})
+    <span style="color: #008000; font-weight: bold">return</span> data
+
+monthly_data <span style="color: #666">=</span> generate_monthly_data()
+<span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;월&#39;</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^5</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;총&#39;</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^6</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;긍정&#39;</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^5</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;부정&#39;</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^5</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;중립&#39;</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^5</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;긍정률&#39;</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^7</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> m <span style="color: #A2F; font-weight: bold">in</span> monthly_data:
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>m[<span style="color: #BA2121">&#39;month_name&#39;</span>]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^5</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span>m[<span style="color: #BA2121">&#39;total&#39;</span>]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^6</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span>m[<span style="color: #BA2121">&#39;positive&#39;</span>]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^5</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span>m[<span style="color: #BA2121">&#39;negative&#39;</span>]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^5</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span>m[<span style="color: #BA2121">&#39;neutral&#39;</span>]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^5</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span>m[<span style="color: #BA2121">&#39;positive_rate&#39;</span>]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^6</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%&quot;</span>)
+</code></pre></div>
+
+<p><em>(랜덤 노이즈가 들어가니 실행마다 수치는 조금씩 달라집니다. 3~4월에 긍정률이 낮아지는 큰 흐름은 유지됩니다.)</em></p>
+<blockquote>
+<p>참고로, 위 <code>call_llm</code>은 리뷰 하나를 보내 응답 하나를 받는 <strong>단발성</strong> 호출입니다. 만약 챗봇처럼 맥락을 이어가는 대화형으로 만들고 싶다면, <code>messages</code>에 그동안의 대화 목록을 함께 쌓아 보내야 합니다. ChatGPT를 오래 쓰면 "대화 용량이 찼다"는 메시지가 뜨는 이유가 바로 이것 — 매 회차마다 이전 대화를 같이 보내기 때문입니다. 지금 우리 분석은 단발성으로 충분합니다.</p>
+</blockquote>
+<h3 id="4">4. 이동 평균 — 노이즈를 부드럽게</h3>
+<p>일별·월별 데이터에는 <strong>노이즈</strong>(일시적 변동)가 섞여 있습니다. 어제 긍정률 50%, 오늘 60%라고 해서 "하루 만에 10% 뛰었다!"고 해석하면 위험합니다. 그건 우연일 수 있거든요. 그래서 <strong>이동 평균(moving average)</strong>을 씁니다. <strong>최근 N개 기간의 평균</strong>을 내서 흔들림을 부드럽게 만드는 거죠. "숲을 보는 방법"입니다 — 개별 나무(하루치 데이터)에 휘둘리지 않고 전체 방향을 봅니다.</p>
+<p>예를 들어 일별 긍정률이 70·65·80·60·75처럼 들쭉날쭉하면 트렌드가 잘 안 보이지만, 여기에 3일 이동평균을 적용하면 71.7·68.3·71.7로 부드러워집니다 — 흔들림은 사라지고 흐름만 남죠.</p>
+<p><strong>주식 차트</strong>가 좋은 예입니다. 일봉은 매일 등락이 심해 트렌드가 안 보입니다. 그래서 5일 이동평균선(단기 트렌드), 20일 이동평균선(중기 트렌드)을 함께 봅니다. 감성 분석도 똑같이, 일별 데이터의 노이즈를 이동 평균으로 걷어내고 추세를 봅니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">moving_average</span>(data, window<span style="color: #666">=3</span>):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;최근 window개의 평균을 계산. 데이터가 부족한 앞부분은 None.&quot;&quot;&quot;</span>
+    result <span style="color: #666">=</span> []
+    <span style="color: #008000; font-weight: bold">for</span> i <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">range</span>(<span style="color: #008000">len</span>(data)):
+        <span style="color: #008000; font-weight: bold">if</span> i <span style="color: #666">&lt;</span> window <span style="color: #666">-</span> <span style="color: #666">1</span>:
+            result<span style="color: #666">.</span>append(<span style="color: #008000; font-weight: bold">None</span>)                       <span style="color: #3D7B7B; font-style: italic"># 아직 window개가 안 모임</span>
+        <span style="color: #008000; font-weight: bold">else</span>:
+            avg <span style="color: #666">=</span> <span style="color: #008000">sum</span>(data[i <span style="color: #666">-</span> window <span style="color: #666">+</span> <span style="color: #666">1</span>:i <span style="color: #666">+</span> <span style="color: #666">1</span>]) <span style="color: #666">/</span> window
+            result<span style="color: #666">.</span>append(<span style="color: #008000">round</span>(avg, <span style="color: #666">1</span>))
+    <span style="color: #008000; font-weight: bold">return</span> result
+
+rates <span style="color: #666">=</span> [m[<span style="color: #BA2121">&#39;positive_rate&#39;</span>] <span style="color: #008000; font-weight: bold">for</span> m <span style="color: #A2F; font-weight: bold">in</span> monthly_data]
+months <span style="color: #666">=</span> [m[<span style="color: #BA2121">&#39;month_name&#39;</span>] <span style="color: #008000; font-weight: bold">for</span> m <span style="color: #A2F; font-weight: bold">in</span> monthly_data]
+ma_3 <span style="color: #666">=</span> moving_average(rates, window<span style="color: #666">=3</span>)               <span style="color: #3D7B7B; font-style: italic"># 3개월 이동 평균</span>
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;월&#39;</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^5</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;긍정률&#39;</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^8</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;3개월 이동평균&#39;</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^14</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> i, mth <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">enumerate</span>(months):
+    ma <span style="color: #666">=</span> <span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>ma_3[i]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%&quot;</span> <span style="color: #008000; font-weight: bold">if</span> ma_3[i] <span style="color: #A2F; font-weight: bold">is</span> <span style="color: #A2F; font-weight: bold">not</span> <span style="color: #008000; font-weight: bold">None</span> <span style="color: #008000; font-weight: bold">else</span> <span style="color: #BA2121">&quot;-&quot;</span>
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>mth<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^5</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span>rates[i]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^7</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%|</span><span style="color: #A45A77; font-weight: bold">{</span>ma<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^14</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+
+<span style="color: #3D7B7B; font-style: italic"># 원본 vs 이동평균 시각화</span>
+<span style="color: #008000; font-weight: bold">if</span> HAS_MPL:
+    x <span style="color: #666">=</span> <span style="color: #008000">range</span>(<span style="color: #008000">len</span>(months))
+    plt<span style="color: #666">.</span>figure(figsize<span style="color: #666">=</span>(<span style="color: #666">10</span>, <span style="color: #666">5</span>))
+    plt<span style="color: #666">.</span>plot(x, rates, <span style="color: #BA2121">&#39;o-&#39;</span>, label<span style="color: #666">=</span><span style="color: #BA2121">&#39;Original&#39;</span>, linewidth<span style="color: #666">=2</span>)
+    ma_x <span style="color: #666">=</span> [i <span style="color: #008000; font-weight: bold">for</span> i, v <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">enumerate</span>(ma_3) <span style="color: #008000; font-weight: bold">if</span> v <span style="color: #A2F; font-weight: bold">is</span> <span style="color: #A2F; font-weight: bold">not</span> <span style="color: #008000; font-weight: bold">None</span>]
+    ma_y <span style="color: #666">=</span> [v <span style="color: #008000; font-weight: bold">for</span> v <span style="color: #A2F; font-weight: bold">in</span> ma_3 <span style="color: #008000; font-weight: bold">if</span> v <span style="color: #A2F; font-weight: bold">is</span> <span style="color: #A2F; font-weight: bold">not</span> <span style="color: #008000; font-weight: bold">None</span>]
+    plt<span style="color: #666">.</span>plot(ma_x, ma_y, <span style="color: #BA2121">&#39;s--&#39;</span>, label<span style="color: #666">=</span><span style="color: #BA2121">&#39;3-Month MA&#39;</span>, linewidth<span style="color: #666">=2</span>)
+    plt<span style="color: #666">.</span>xticks(<span style="color: #008000">list</span>(x), months); plt<span style="color: #666">.</span>ylim(<span style="color: #666">30</span>, <span style="color: #666">80</span>)
+    plt<span style="color: #666">.</span>ylabel(<span style="color: #BA2121">&#39;Positive Rate (%)&#39;</span>); plt<span style="color: #666">.</span>title(<span style="color: #BA2121">&#39;Monthly Positive Rate with Moving Average&#39;</span>)
+    plt<span style="color: #666">.</span>legend(); plt<span style="color: #666">.</span>grid(alpha<span style="color: #666">=0.3</span>); plt<span style="color: #666">.</span>tight_layout(); plt<span style="color: #666">.</span>show()
+</code></pre></div>
+
+<p>앞 두 칸은 <code>None</code>으로 비어 있습니다(아직 3개월치가 안 모였으니까요). 그 뒤부터 부드러운 선이 그려지며 전체 흐름이 보입니다. 처음엔 용어가 생소하실 수 있는데, 이 과정은 난이도가 꽤 높은 편입니다 — AI에 고급 LLM을 접목하고 수학적 접근까지 실무 수준으로 다루는 거라, <strong>반복 복습</strong>으로 익숙해지는 게 정답입니다.</p>
+<p><strong>이동 평균 해석법</strong>도 알아 둡시다.</p>
+<table>
+<thead>
+<tr>
+<th>관찰</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>이동평균이 하락</td>
+<td>추세적으로 악화 중</td>
+</tr>
+<tr>
+<td>이동평균이 상승</td>
+<td>추세적으로 개선 중</td>
+</tr>
+<tr>
+<td>원본 &gt; 이동평균</td>
+<td>현재가 추세보다 좋음</td>
+</tr>
+<tr>
+<td>원본 &lt; 이동평균</td>
+<td>현재가 추세보다 나쁨</td>
+</tr>
+</tbody>
+</table>
+<p>예를 들어 "이번 달 긍정률 63%, 이동평균 56%"라면 현재가 추세보다 높으니 <strong>회복 중</strong>이라고 읽습니다.</p>
+<h3 id="5-change-point">5. 변화 지점(change point) 감지</h3>
+<p><strong>변화 지점</strong>은 트렌드가 급격히 바뀌는 시점입니다. 이게 중요한 이유는 <strong>원인 분석의 시작점</strong>이 되기 때문입니다. 긍정이 80%에서 40%로 급락했다면 그 시점에 뭔가(버그 업데이트, 서버 문제) 있었던 거고, 50%에서 75%로 급등했다면 대규모 패치나 할인 이벤트가 있었을 수 있습니다. 개발에서 "왜 안 되지?"만큼이나 "왜 되지?"도 중요합니다 — 좋아진 이유를 알아야 다시 재현할 수 있으니까요.</p>
+<p>변화 지점을 찾는 방법은 이동 평균 전후를 비교하거나 표준편차를 활용하는 것도 있지만, 복잡한 통계 없이 <strong>전월 대비 변화량</strong>이 임계값을 넘으면 변화 지점으로 잡는 간단한 방법만으로도 충분합니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">detect_change_points</span>(data, threshold<span style="color: #666">=10</span>):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;이전 값 대비 변화량이 threshold(%p)를 넘으면 변화 지점으로 표시.&quot;&quot;&quot;</span>
+    points <span style="color: #666">=</span> []
+    <span style="color: #008000; font-weight: bold">for</span> i <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">range</span>(<span style="color: #666">1</span>, <span style="color: #008000">len</span>(data)):
+        change <span style="color: #666">=</span> data[i] <span style="color: #666">-</span> data[i <span style="color: #666">-</span> <span style="color: #666">1</span>]
+        <span style="color: #008000; font-weight: bold">if</span> <span style="color: #008000">abs</span>(change) <span style="color: #666">&gt;=</span> threshold:
+            points<span style="color: #666">.</span>append({<span style="color: #BA2121">&#39;index&#39;</span>: i, <span style="color: #BA2121">&#39;from&#39;</span>: data[i <span style="color: #666">-</span> <span style="color: #666">1</span>], <span style="color: #BA2121">&#39;to&#39;</span>: data[i],
+                           <span style="color: #BA2121">&#39;change&#39;</span>: <span style="color: #008000">round</span>(change, <span style="color: #666">1</span>),
+                           <span style="color: #BA2121">&#39;direction&#39;</span>: <span style="color: #BA2121">&#39;상승&#39;</span> <span style="color: #008000; font-weight: bold">if</span> change <span style="color: #666">&gt;</span> <span style="color: #666">0</span> <span style="color: #008000; font-weight: bold">else</span> <span style="color: #BA2121">&#39;하락&#39;</span>})
+    <span style="color: #008000; font-weight: bold">return</span> points
+
+<span style="color: #008000; font-weight: bold">for</span> cp <span style="color: #A2F; font-weight: bold">in</span> detect_change_points(rates, threshold<span style="color: #666">=10</span>):
+    i <span style="color: #666">=</span> cp[<span style="color: #BA2121">&#39;index&#39;</span>]
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>months[i<span style="color: #666">-1</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> → </span><span style="color: #A45A77; font-weight: bold">{</span>months[i]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">: </span><span style="color: #A45A77; font-weight: bold">{</span>cp[<span style="color: #BA2121">&#39;from&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">% → </span><span style="color: #A45A77; font-weight: bold">{</span>cp[<span style="color: #BA2121">&#39;to&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">% &quot;</span>
+          <span style="color: #BA2121">f&quot;(</span><span style="color: #A45A77; font-weight: bold">{</span>cp[<span style="color: #BA2121">&#39;change&#39;</span>]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">+.1f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%p, </span><span style="color: #A45A77; font-weight: bold">{</span>cp[<span style="color: #BA2121">&#39;direction&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">)&quot;</span>)
+    <span style="color: #008000; font-weight: bold">if</span> cp[<span style="color: #BA2121">&#39;direction&#39;</span>] <span style="color: #666">==</span> <span style="color: #BA2121">&#39;하락&#39;</span>:
+        <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;  → 부정적 변화. 그 시점에 무슨 일이 있었는지 원인 분석 필요&quot;</span>)
+    <span style="color: #008000; font-weight: bold">else</span>:
+        <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;  → 긍정적 회복. 어떤 조치가 효과적이었는지 확인&quot;</span>)
+</code></pre></div>
+
+<p>2월에서 3월로 넘어갈 때 큰 하락(업데이트 버그), 4~5월에 회복(핫픽스)이 변화 지점으로 잡힙니다. 감지에서 끝나는 게 아니라 <strong>그 시점을 들여다보고 민첩하게 대응</strong>하는 데까지 가는 게 목적입니다.</p>
+<p>지금까지 배운 걸 하나로 묶으면 <strong>시계열 종합 분석 함수</strong>가 됩니다. 흐름은 <em>월별 데이터 → 이동평균 계산 → 변화점 감지 → 전체 추세 방향 판단 → 종합 리포트</em>. 전체 추세는 <strong>첫 이동평균과 마지막 이동평균을 비교</strong>해 상승/하락/안정으로 가립니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">analyze_time_series</span>(monthly_data, ma_window<span style="color: #666">=3</span>, change_threshold<span style="color: #666">=10</span>):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;이동평균·변화점·전체 추세 방향을 한 번에 종합한다.&quot;&quot;&quot;</span>
+    values <span style="color: #666">=</span> [m[<span style="color: #BA2121">&#39;positive_rate&#39;</span>] <span style="color: #008000; font-weight: bold">for</span> m <span style="color: #A2F; font-weight: bold">in</span> monthly_data]
+    ma <span style="color: #666">=</span> moving_average(values, window<span style="color: #666">=</span>ma_window)
+    changes <span style="color: #666">=</span> detect_change_points(values, threshold<span style="color: #666">=</span>change_threshold)
+    first_ma <span style="color: #666">=</span> <span style="color: #008000">next</span>(v <span style="color: #008000; font-weight: bold">for</span> v <span style="color: #A2F; font-weight: bold">in</span> ma <span style="color: #008000; font-weight: bold">if</span> v <span style="color: #A2F; font-weight: bold">is</span> <span style="color: #A2F; font-weight: bold">not</span> <span style="color: #008000; font-weight: bold">None</span>)          <span style="color: #3D7B7B; font-style: italic"># 첫 유효 이동평균</span>
+    diff <span style="color: #666">=</span> ma[<span style="color: #666">-1</span>] <span style="color: #666">-</span> first_ma                                 <span style="color: #3D7B7B; font-style: italic"># 처음 대비 마지막</span>
+    trend <span style="color: #666">=</span> <span style="color: #BA2121">&quot;상승 추세&quot;</span> <span style="color: #008000; font-weight: bold">if</span> diff <span style="color: #666">&gt;</span> <span style="color: #666">5</span> <span style="color: #008000; font-weight: bold">else</span> <span style="color: #BA2121">&quot;하락 추세&quot;</span> <span style="color: #008000; font-weight: bold">if</span> diff <span style="color: #666">&lt;</span> <span style="color: #666">-5</span> <span style="color: #008000; font-weight: bold">else</span> <span style="color: #BA2121">&quot;안정적&quot;</span>
+    <span style="color: #008000; font-weight: bold">return</span> {<span style="color: #BA2121">&#39;trend&#39;</span>: trend, <span style="color: #BA2121">&#39;change_points&#39;</span>: <span style="color: #008000">len</span>(changes), <span style="color: #BA2121">&#39;current&#39;</span>: values[<span style="color: #666">-1</span>]}
+
+a <span style="color: #666">=</span> analyze_time_series(monthly_data)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;전체 추세: </span><span style="color: #A45A77; font-weight: bold">{</span>a[<span style="color: #BA2121">&#39;trend&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> / 변화점 </span><span style="color: #A45A77; font-weight: bold">{</span>a[<span style="color: #BA2121">&#39;change_points&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">개 / 현재 긍정률 </span><span style="color: #A45A77; font-weight: bold">{</span>a[<span style="color: #BA2121">&#39;current&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%&quot;</span>)
+</code></pre></div>
+
+<h3 id="6-llm">6. LLM으로 추이 해석하기</h3>
+<p>숫자만으로는 "왜"를 알기 어렵습니다. 여기서 LLM을 또 다른 방식으로 활용할 수 있습니다 — <strong>추이 데이터에 맥락 정보(이벤트 타임라인)를 함께</strong> 주면, AI가 데이터와 사건을 연결해 의미 있는 해석과 권장 사항을 내놓습니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 이벤트 타임라인 — 데이터에 &#39;맥락&#39;을 입혀 주는 핵심</span>
+events <span style="color: #666">=</span> [
+    {<span style="color: #BA2121">&quot;month&quot;</span>: <span style="color: #666">3</span>, <span style="color: #BA2121">&quot;event&quot;</span>: <span style="color: #BA2121">&quot;대규모 콘텐츠 업데이트 (버전 2.0)&quot;</span>},
+    {<span style="color: #BA2121">&quot;month&quot;</span>: <span style="color: #666">4</span>, <span style="color: #BA2121">&quot;event&quot;</span>: <span style="color: #BA2121">&quot;버그 리포트 급증, 공식 사과문 발표&quot;</span>},
+    {<span style="color: #BA2121">&quot;month&quot;</span>: <span style="color: #666">5</span>, <span style="color: #BA2121">&quot;event&quot;</span>: <span style="color: #BA2121">&quot;긴급 핫픽스 패치 배포&quot;</span>},
+]
+
+SYSTEM_PROMPT <span style="color: #666">=</span> <span style="color: #BA2121">&quot;&quot;&quot;당신은 게임 리뷰 분석 전문가입니다.</span>
+<span style="color: #BA2121">월별 감성 추이와 이벤트 타임라인을 분석해 인사이트를 제공합니다.</span>
+<span style="color: #BA2121">다음 JSON 형식으로만 응답하세요:</span>
+<span style="color: #BA2121">{</span>
+<span style="color: #BA2121">  &quot;summary&quot;: &quot;한 줄 요약&quot;,</span>
+<span style="color: #BA2121">  &quot;correlations&quot;: [{&quot;period&quot;: &quot;기간&quot;, &quot;event&quot;: &quot;관련 이벤트&quot;, &quot;impact&quot;: &quot;데이터에 미친 영향&quot;}],</span>
+<span style="color: #BA2121">  &quot;recommendations&quot;: [&quot;권장사항 1&quot;, &quot;권장사항 2&quot;]</span>
+<span style="color: #BA2121">}&quot;&quot;&quot;</span>
+
+request <span style="color: #666">=</span> <span style="color: #BA2121">f&quot;&quot;&quot;## 월별 긍정률</span>
+<span style="color: #A45A77; font-weight: bold">{</span>json<span style="color: #666">.</span>dumps([{<span style="color: #BA2121">&#39;month&#39;</span>:<span style="color: #BBB"> </span>m[<span style="color: #BA2121">&#39;month_name&#39;</span>],<span style="color: #BBB"> </span><span style="color: #BA2121">&#39;positive_rate&#39;</span>:<span style="color: #BBB"> </span>m[<span style="color: #BA2121">&#39;positive_rate&#39;</span>]}<span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">for</span><span style="color: #BBB"> </span>m<span style="color: #BBB"> </span><span style="color: #A2F; font-weight: bold">in</span><span style="color: #BBB"> </span>monthly_data],<span style="color: #BBB"> </span>ensure_ascii<span style="color: #666">=</span><span style="color: #008000; font-weight: bold">False</span>)<span style="color: #A45A77; font-weight: bold">}</span>
+<span style="color: #BA2121">## 이벤트 타임라인</span>
+<span style="color: #A45A77; font-weight: bold">{</span>json<span style="color: #666">.</span>dumps(events,<span style="color: #BBB"> </span>ensure_ascii<span style="color: #666">=</span><span style="color: #008000; font-weight: bold">False</span>)<span style="color: #A45A77; font-weight: bold">}</span>
+<span style="color: #BA2121">위 데이터를 분석해 인사이트를 제공해주세요.&quot;&quot;&quot;</span>
+
+<span style="color: #008000; font-weight: bold">try</span>:
+    result <span style="color: #666">=</span> call_llm_json(SYSTEM_PROMPT, request)
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;요약:&quot;</span>, result<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;summary&#39;</span>))
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">이벤트-데이터 연관성:&quot;</span>)
+    <span style="color: #008000; font-weight: bold">for</span> c <span style="color: #A2F; font-weight: bold">in</span> result<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;correlations&#39;</span>, []):
+        <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;  • </span><span style="color: #A45A77; font-weight: bold">{</span>c<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;period&#39;</span>)<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">: </span><span style="color: #A45A77; font-weight: bold">{</span>c<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;event&#39;</span>)<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> → </span><span style="color: #A45A77; font-weight: bold">{</span>c<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;impact&#39;</span>)<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">권장사항:&quot;</span>)
+    <span style="color: #008000; font-weight: bold">for</span> i, rec <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">enumerate</span>(result<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;recommendations&#39;</span>, []), <span style="color: #666">1</span>):
+        <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;  </span><span style="color: #A45A77; font-weight: bold">{</span>i<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">. </span><span style="color: #A45A77; font-weight: bold">{</span>rec<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+<span style="color: #008000; font-weight: bold">except</span> <span style="color: #CB3F38; font-weight: bold">Exception</span> <span style="color: #008000; font-weight: bold">as</span> e:
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;LLM 분석 실패: </span><span style="color: #A45A77; font-weight: bold">{</span>e<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> (API 키나 네트워크를 확인하세요)&quot;</span>)
+</code></pre></div>
+
+<p>AI는 "대규모 업데이트 후 버그로 긍정률이 급락했으나 핫픽스로 회복세"처럼 <strong>이벤트와 데이터를 엮어</strong> 요약하고 권장 사항까지 제시합니다. 숫자(정량)와 맥락(정성)을 합쳐 비로소 "그래서 무엇을 할 것인가"에 답하는 거죠.</p>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>시계열 데이터</td>
+<td>시간 순서로 정렬된 데이터. 날짜·시간 정보가 핵심</td>
+</tr>
+<tr>
+<td><code>timestamp_created</code></td>
+<td>Steam 리뷰의 작성 시각 필드. 월별 집계의 기준</td>
+</tr>
+<tr>
+<td>이동 평균(moving average)</td>
+<td>최근 N개의 평균으로 노이즈를 줄여 추세를 보는 기법</td>
+</tr>
+<tr>
+<td>윈도우(window)</td>
+<td>이동 평균을 낼 기간 크기(예: 3개월이면 window=3)</td>
+</tr>
+<tr>
+<td>변화 지점(change point)</td>
+<td>트렌드가 급격히 바뀌는 시점. 원인 분석의 출발점</td>
+</tr>
+<tr>
+<td>노이즈</td>
+<td>추세와 무관한 일시적 변동. 이동 평균으로 완화</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>시계열은 리뷰 분석을 "현황 보고"에서 "운영 의사결정 도구"로 끌어올립니다. 전체 평균은 <em>상태</em>를 말하지만, 기획자가 정작 알고 싶은 건 <em>변화의 방향과 원인</em>이죠. 변화 지점 감지는 곧 <strong>업데이트·이벤트의 효과 측정</strong>입니다 — 패치 전후 2주를 비교해 "이 패치가 먹혔나"를 데이터로 답하고, 급락 시점을 짚어 "그날 무슨 빌드가 나갔지?"로 역추적할 수 있습니다. 이동 평균의 "노이즈에 휘둘리지 말라"는 교훈은 라이브 운영에서 <em>하루치 지표 출렁임에 과민 반응하지 않는</em> 감각과 같고, LLM에 이벤트 타임라인을 함께 주는 방식은 <em>지표 대시보드 옆에 패치 노트를 나란히 두는</em> 운영 습관으로 그대로 옮겨집니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>하루(혹은 한 달) 사이의 급등락을 곧장 추세로 해석하면 안 됩니다.</strong> 우연일 수 있습니다. 이동 평균으로 노이즈를 걷어낸 뒤 판단하세요.</li>
+<li><strong>이동 평균의 앞부분이 <code>None</code>인 건 오류가 아닙니다.</strong> window만큼 데이터가 모이기 전에는 평균을 낼 수 없어 비워 둡니다.</li>
+<li><strong>변화 지점은 "감지"가 끝이 아닙니다.</strong> 그 시점에 무슨 이벤트가 있었는지 연결해야 비로소 인사이트가 됩니다.</li>
+<li><strong>숫자만으론 "왜"를 알 수 없습니다.</strong> 맥락(이벤트 타임라인)을 함께 줘야 원인 해석이 가능합니다.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li>같은 "65%"도 <strong>오르는 중/떨어지는 중</strong>에 따라 의미가 다릅니다. 시간 축을 더하면 새 인사이트가 보입니다.</li>
+<li><strong>이동 평균</strong>으로 일별 노이즈를 걷어내 트렌드를 보고, <strong>변화 지점</strong>으로 급변 시점을 찾아 원인을 분석합니다.</li>
+<li>숫자(정량)에 <strong>맥락(이벤트)</strong>을 더하면, LLM이 "왜 이렇게 됐는지"까지 해석해 줍니다.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>여기까지 우리는 결과를 검증하고 추세까지 읽었습니다. 그런데 분석의 <strong>재료와 도구 자체가 한쪽으로 치우쳐</strong> 있다면 어떨까요? 영어 리뷰만 봤거나, 전체 평균에 최근 급락이 묻혔거나, LLM이 특정 표현을 못 알아듣는다면요. 다음 4강 <strong>AI 편향과 공정성</strong>에서는 분석의 모든 단계에 숨은 편향을 점검하고, 신뢰받는 분석을 위한 체크리스트를 만듭니다.</p>
+</article>
+<div class="pager"><a class="prev" href="2강.html"><span class="lbl">← 이전</span><span class="ttl">2강 — 결과 검증과 품질 관리</span></a><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><a class="next" href="4강.html"><span class="lbl">다음 →</span><span class="ttl">4강 — AI 편향과 공정성</span></a></div>
+</div>
+</body>
+</html>

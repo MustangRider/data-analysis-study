@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2강 — 결과 검증과 품질 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-04 · 2강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="2">2강 — 결과 검증과 품질 관리</h1>
+<blockquote>
+<p>2강 (26차시)</p>
+</blockquote>
+<h2 id="_1">🎯 학습 목표</h2>
+<ul>
+<li><strong>신뢰도와 정확도가 다른 개념</strong>임을 설명할 수 있다</li>
+<li><strong>샘플 검증·일관성 체크·분포 확인</strong> 세 가지로 분석 품질을 검증할 수 있다</li>
+<li>정확도·일관성·채택률 같은 <strong>품질 지표를 정의하고 숫자로 관리</strong>할 수 있다</li>
+<li>오류를 "틀렸다"에서 멈추지 않고 <strong>"왜 틀렸는지" 패턴으로 분석</strong>할 수 있다</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<h3 id="1-ai-90">1. AI가 90% 확신한다는데, 정말 맞을까요?</h3>
+<p>지난 강에서 우리는 confidence(신뢰도)로 AI의 확신 정도를 확인했습니다. 그런데 한 가지 더 짚어야 할 게 있습니다. 마케팅팀이 리뷰 분석 보고를 요청해서, 1,000개 리뷰 중 650개가 긍정이라고 AI가 말했다고 해 봅시다. AI가 "90% 확신한다"고 했어요. <strong>그게 정말 맞을까요?</strong> 자신 있어 한다니 그냥 보고했다가 나중에 틀린 게 발견되면 곤란해집니다. AI가 자신 있어 한다고 해서 항상 맞는 건 아닙니다. 그래서 <strong>검증</strong>이 필요합니다.</p>
+<p>여기서 오늘 가장 중요한 구분이 나옵니다. <strong>신뢰도와 정확도는 다른 개념입니다.</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>신뢰도(confidence)</th>
+<th>정확도(accuracy)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>뜻</td>
+<td>AI가 얼마나 자신 있어 하는지</td>
+<td>실제로 맞춘 비율</td>
+</tr>
+<tr>
+<td>누가 정하나</td>
+<td>AI가 스스로 보고(자가 평가)</td>
+<td>정답과 비교해서 객관적으로 확인</td>
+</tr>
+<tr>
+<td>비유</td>
+<td>학생이 "이 답 맞을 것 같아요"라고 말함</td>
+<td>선생님이 채점해보니 실제로 맞음</td>
+</tr>
+</tbody>
+</table>
+<p>AI가 90% 자신 있다고 해도 실제로 맞춘 비율은 70%일 수 있습니다. <strong>채점을 해 봐야 비로소 진짜 실력을 아는</strong> 것처럼, 검증 없이는 실제 정확도를 알 방법이 없습니다.</p>
+<h3 id="2_1">2. 검증 없이 쓰면 무슨 일이 생기나요?</h3>
+<p>검증을 건너뛰면 세 가지 위험이 따라옵니다.</p>
+<ol>
+<li><strong>체계적 오류를 못 잡습니다.</strong> AI가 특정 유형의 리뷰를 계속 틀리고 있는데 우리가 모릅니다.</li>
+<li><strong>프롬프트 개선 기회를 놓칩니다.</strong> 프롬프트를 고치면 더 좋아질 수 있는데 그 사실을 인식하지 못합니다.</li>
+<li><strong>보고서 신뢰가 무너집니다.</strong> "긍정 80%"라고 보고했는데 나중에 확인하니 60%였다면, 그 뒤로 모든 분석이 의심받습니다.</li>
+</ol>
+<p><strong>자동차 공장의 품질 검사</strong>를 떠올려 봅시다. 로봇이 부품을 조립하는데, 모든 제품을 사람이 하나하나 검사하면 시간과 비용이 너무 큽니다. 그래서 <strong>샘플 검사</strong>를 합니다. 100개 중 10개만 뽑아 확인하고 그것으로 전체 품질을 추정하죠. 그리고 "불량률 1% 이하 유지" 같은 <strong>목표를 숫자로</strong> 설정합니다. AI 분석도 똑같이 접근하면 됩니다.</p>
+<table>
+<thead>
+<tr>
+<th>공장</th>
+<th>AI 분석</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>전수 검사는 비효율</td>
+<td>모든 결과를 사람이 확인하면 시간 낭비</td>
+</tr>
+<tr>
+<td>샘플 검사로 품질 확인</td>
+<td>일부만 검증해 전체 품질 추정</td>
+</tr>
+<tr>
+<td>불량률 목표 설정</td>
+<td>품질 지표 기준 설정</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-1">3. 검증 방법 1 — 샘플 검증</h3>
+<p><strong>샘플 검증</strong>은 일부 결과를 사람이 직접 확인하는 방법입니다. 절차는 단순합니다.</p>
+<ol>
+<li>전체 결과에서 <strong>무작위로 50~100개</strong>를 뽑습니다.</li>
+<li>그 리뷰들을 <strong>사람이 직접 읽고</strong> 분류합니다(이건 긍정, 이건 부정…).</li>
+<li>AI 분류와 사람 분류를 비교해 <strong>일치율(정확도)</strong>을 계산합니다.</li>
+</ol>
+<p>정확도는 <code>맞춘 수 / 전체 × 100%</code>이고, <strong>80% 이상이면 양호, 70% 미만이면 프롬프트 개선이 필요</strong>하다고 봅니다.</p>
+<p>여기서 잠깐, 깊이 있는 이야기를 하나 하겠습니다. 위 2번 — <strong>"사람이 직접 읽고 분류한다"</strong> — 이게 실은 AI 산업의 숨은 승부처입니다. 흔히 "얼마나 좋은 모델을 만드느냐"를 이야기하지만, 실제 가치는 <strong>데이터</strong>, 그중에서도 <strong>정답이 달린 데이터</strong>에 있습니다. 이렇게 사람이 만든 정답을 전문 용어로 <strong>레이블(label)</strong>이라고 합니다. AI 모델을 개발할 때 관련 비용과 시간의 보통 <strong>70%, 많게는 90%</strong>가 이 데이터·레이블 작업에 투자됩니다. 그러니 샘플 검증의 "사람이 직접 분류" 단계는 귀찮은 잡일이 아니라, <strong>분석 품질을 떠받치는 핵심 자산</strong>을 만드는 일입니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># ① 환경 준비 (이 강의 첫 셀에서 한 번만)</span>
+<span style="border: 1px solid #F00">!</span>pip install openai <span style="color: #666">-</span>q
+
+<span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">json</span>
+<span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">re</span>
+<span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">random</span>
+<span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">collections</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> Counter
+<span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">google.colab</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> userdata
+<span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">openai</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> OpenAI
+
+MODEL <span style="color: #666">=</span> <span style="color: #BA2121">&quot;mistralai/devstral-2512:free&quot;</span>
+api_key <span style="color: #666">=</span> userdata<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;OPENROUTER_API_KEY&#39;</span>)
+client <span style="color: #666">=</span> OpenAI(base_url<span style="color: #666">=</span><span style="color: #BA2121">&quot;https://openrouter.ai/api/v1&quot;</span>, api_key<span style="color: #666">=</span>api_key)
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">clean_json_response</span>(text):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;LLM 응답에서 순수 JSON 문자열만 추출.&quot;&quot;&quot;</span>
+    text <span style="color: #666">=</span> text<span style="color: #666">.</span>strip()
+    <span style="color: #008000; font-weight: bold">if</span> <span style="color: #BA2121">&#39;```json&#39;</span> <span style="color: #A2F; font-weight: bold">in</span> text:
+        m <span style="color: #666">=</span> re<span style="color: #666">.</span>search(<span style="color: #BA2121">r&#39;```json\s*([\s\S]*?)\s*```&#39;</span>, text)
+        <span style="color: #008000; font-weight: bold">if</span> m: <span style="color: #008000; font-weight: bold">return</span> m<span style="color: #666">.</span>group(<span style="color: #666">1</span>)<span style="color: #666">.</span>strip()
+    <span style="color: #008000; font-weight: bold">if</span> <span style="color: #BA2121">&#39;```&#39;</span> <span style="color: #A2F; font-weight: bold">in</span> text:
+        m <span style="color: #666">=</span> re<span style="color: #666">.</span>search(<span style="color: #BA2121">r&#39;```\s*([\s\S]*?)\s*```&#39;</span>, text)
+        <span style="color: #008000; font-weight: bold">if</span> m: <span style="color: #008000; font-weight: bold">return</span> m<span style="color: #666">.</span>group(<span style="color: #666">1</span>)<span style="color: #666">.</span>strip()
+    m <span style="color: #666">=</span> re<span style="color: #666">.</span>search(<span style="color: #BA2121">r&#39;(\{[\s\S]*\}|\[[\s\S]*\])&#39;</span>, text)
+    <span style="color: #008000; font-weight: bold">return</span> m<span style="color: #666">.</span>group(<span style="color: #666">1</span>)<span style="color: #666">.</span>strip() <span style="color: #008000; font-weight: bold">if</span> m <span style="color: #008000; font-weight: bold">else</span> text
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">call_llm</span>(system_prompt, user_message):
+    res <span style="color: #666">=</span> client<span style="color: #666">.</span>chat<span style="color: #666">.</span>completions<span style="color: #666">.</span>create(
+        model<span style="color: #666">=</span>MODEL,
+        messages<span style="color: #666">=</span>[{<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;system&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: system_prompt},
+                  {<span style="color: #BA2121">&quot;role&quot;</span>: <span style="color: #BA2121">&quot;user&quot;</span>, <span style="color: #BA2121">&quot;content&quot;</span>: user_message}],
+    )
+    <span style="color: #008000; font-weight: bold">return</span> res<span style="color: #666">.</span>choices[<span style="color: #666">0</span>]<span style="color: #666">.</span>message<span style="color: #666">.</span>content
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">call_llm_json</span>(system_prompt, user_message):
+    <span style="color: #008000; font-weight: bold">return</span> json<span style="color: #666">.</span>loads(clean_json_response(call_llm(system_prompt, user_message)))
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;준비 완료!&quot;</span>)
+</code></pre></div>
+
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 실제로는 24차시 대량 분석 결과를 쓰지만, 여기서는 &#39;검증&#39;에 집중하기 위해</span>
+<span style="color: #3D7B7B; font-style: italic"># 이미 분석이 끝난 것처럼 시뮬레이션 데이터를 만듭니다.</span>
+sample_ai_results <span style="color: #666">=</span> [
+    {<span style="color: #BA2121">&quot;id&quot;</span>: <span style="color: #666">1</span>,  <span style="color: #BA2121">&quot;review&quot;</span>: <span style="color: #BA2121">&quot;게임 정말 재밌어요! 강추!&quot;</span>, <span style="color: #BA2121">&quot;sentiment&quot;</span>: <span style="color: #BA2121">&quot;POSITIVE&quot;</span>, <span style="color: #BA2121">&quot;confidence&quot;</span>: <span style="color: #666">0.95</span>},
+    {<span style="color: #BA2121">&quot;id&quot;</span>: <span style="color: #666">2</span>,  <span style="color: #BA2121">&quot;review&quot;</span>: <span style="color: #BA2121">&quot;최악... 돈 아깝다&quot;</span>,         <span style="color: #BA2121">&quot;sentiment&quot;</span>: <span style="color: #BA2121">&quot;NEGATIVE&quot;</span>, <span style="color: #BA2121">&quot;confidence&quot;</span>: <span style="color: #666">0.92</span>},
+    {<span style="color: #BA2121">&quot;id&quot;</span>: <span style="color: #666">3</span>,  <span style="color: #BA2121">&quot;review&quot;</span>: <span style="color: #BA2121">&quot;그냥 그래요&quot;</span>,               <span style="color: #BA2121">&quot;sentiment&quot;</span>: <span style="color: #BA2121">&quot;NEUTRAL&quot;</span>,  <span style="color: #BA2121">&quot;confidence&quot;</span>: <span style="color: #666">0.78</span>},
+    {<span style="color: #BA2121">&quot;id&quot;</span>: <span style="color: #666">4</span>,  <span style="color: #BA2121">&quot;review&quot;</span>: <span style="color: #BA2121">&quot;아쉽네요 기대했는데&quot;</span>,       <span style="color: #BA2121">&quot;sentiment&quot;</span>: <span style="color: #BA2121">&quot;POSITIVE&quot;</span>, <span style="color: #BA2121">&quot;confidence&quot;</span>: <span style="color: #666">0.65</span>},  <span style="color: #3D7B7B; font-style: italic"># 오분류</span>
+    {<span style="color: #BA2121">&quot;id&quot;</span>: <span style="color: #666">5</span>,  <span style="color: #BA2121">&quot;review&quot;</span>: <span style="color: #BA2121">&quot;할만해요 나쁘진 않음&quot;</span>,      <span style="color: #BA2121">&quot;sentiment&quot;</span>: <span style="color: #BA2121">&quot;POSITIVE&quot;</span>, <span style="color: #BA2121">&quot;confidence&quot;</span>: <span style="color: #666">0.72</span>},
+    {<span style="color: #BA2121">&quot;id&quot;</span>: <span style="color: #666">6</span>,  <span style="color: #BA2121">&quot;review&quot;</span>: <span style="color: #BA2121">&quot;버그 너무 많아서 진짜 화남&quot;</span>,<span style="color: #BA2121">&quot;sentiment&quot;</span>: <span style="color: #BA2121">&quot;NEGATIVE&quot;</span>, <span style="color: #BA2121">&quot;confidence&quot;</span>: <span style="color: #666">0.88</span>},
+    {<span style="color: #BA2121">&quot;id&quot;</span>: <span style="color: #666">7</span>,  <span style="color: #BA2121">&quot;review&quot;</span>: <span style="color: #BA2121">&quot;ㅋㅋㅋㅋ&quot;</span>,                  <span style="color: #BA2121">&quot;sentiment&quot;</span>: <span style="color: #BA2121">&quot;POSITIVE&quot;</span>, <span style="color: #BA2121">&quot;confidence&quot;</span>: <span style="color: #666">0.52</span>},  <span style="color: #3D7B7B; font-style: italic"># 애매</span>
+    {<span style="color: #BA2121">&quot;id&quot;</span>: <span style="color: #666">8</span>,  <span style="color: #BA2121">&quot;review&quot;</span>: <span style="color: #BA2121">&quot;시간 때우기 좋음&quot;</span>,          <span style="color: #BA2121">&quot;sentiment&quot;</span>: <span style="color: #BA2121">&quot;POSITIVE&quot;</span>, <span style="color: #BA2121">&quot;confidence&quot;</span>: <span style="color: #666">0.70</span>},
+    {<span style="color: #BA2121">&quot;id&quot;</span>: <span style="color: #666">9</span>,  <span style="color: #BA2121">&quot;review&quot;</span>: <span style="color: #BA2121">&quot;환불함&quot;</span>,                    <span style="color: #BA2121">&quot;sentiment&quot;</span>: <span style="color: #BA2121">&quot;NEGATIVE&quot;</span>, <span style="color: #BA2121">&quot;confidence&quot;</span>: <span style="color: #666">0.85</span>},
+    {<span style="color: #BA2121">&quot;id&quot;</span>: <span style="color: #666">10</span>, <span style="color: #BA2121">&quot;review&quot;</span>: <span style="color: #BA2121">&quot;친구랑 하면 재밌음&quot;</span>,        <span style="color: #BA2121">&quot;sentiment&quot;</span>: <span style="color: #BA2121">&quot;POSITIVE&quot;</span>, <span style="color: #BA2121">&quot;confidence&quot;</span>: <span style="color: #666">0.80</span>},
+]
+
+<span style="color: #3D7B7B; font-style: italic"># 사람이 직접 읽고 만든 정답(레이블). 실전에서는 이 단계에 시간이 가장 많이 듭니다.</span>
+human_labels <span style="color: #666">=</span> {
+    <span style="color: #666">1</span>: <span style="color: #BA2121">&quot;POSITIVE&quot;</span>, <span style="color: #666">2</span>: <span style="color: #BA2121">&quot;NEGATIVE&quot;</span>, <span style="color: #666">3</span>: <span style="color: #BA2121">&quot;NEUTRAL&quot;</span>,
+    <span style="color: #666">4</span>: <span style="color: #BA2121">&quot;NEGATIVE&quot;</span>,   <span style="color: #3D7B7B; font-style: italic"># &quot;아쉽네요 기대했는데&quot; → 실제로는 부정 (AI가 긍정으로 오분류)</span>
+    <span style="color: #666">5</span>: <span style="color: #BA2121">&quot;NEUTRAL&quot;</span>,    <span style="color: #3D7B7B; font-style: italic"># &quot;할만해요&quot; → 중립에 가까움</span>
+    <span style="color: #666">6</span>: <span style="color: #BA2121">&quot;NEGATIVE&quot;</span>, <span style="color: #666">7</span>: <span style="color: #BA2121">&quot;NEUTRAL&quot;</span>, <span style="color: #666">8</span>: <span style="color: #BA2121">&quot;NEUTRAL&quot;</span>,
+    <span style="color: #666">9</span>: <span style="color: #BA2121">&quot;NEGATIVE&quot;</span>, <span style="color: #666">10</span>: <span style="color: #BA2121">&quot;POSITIVE&quot;</span>,
+}
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;정답 분포:&quot;</span>, Counter(human_labels<span style="color: #666">.</span>values()))
+</code></pre></div>
+
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">validate_sample</span>(ai_results, human_labels):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;AI 결과와 사람 정답을 비교해 정확도와 오류 목록을 계산.&quot;&quot;&quot;</span>
+    correct, errors <span style="color: #666">=</span> <span style="color: #666">0</span>, []
+    <span style="color: #008000; font-weight: bold">for</span> r <span style="color: #A2F; font-weight: bold">in</span> ai_results:
+        human <span style="color: #666">=</span> human_labels<span style="color: #666">.</span>get(r[<span style="color: #BA2121">&#39;id&#39;</span>])
+        <span style="color: #008000; font-weight: bold">if</span> human <span style="color: #A2F; font-weight: bold">is</span> <span style="color: #008000; font-weight: bold">None</span>:
+            <span style="color: #008000; font-weight: bold">continue</span>
+        <span style="color: #008000; font-weight: bold">if</span> r[<span style="color: #BA2121">&#39;sentiment&#39;</span>] <span style="color: #666">==</span> human:
+            correct <span style="color: #666">+=</span> <span style="color: #666">1</span>
+        <span style="color: #008000; font-weight: bold">else</span>:
+            errors<span style="color: #666">.</span>append({<span style="color: #BA2121">&#39;id&#39;</span>: r[<span style="color: #BA2121">&#39;id&#39;</span>], <span style="color: #BA2121">&#39;review&#39;</span>: r[<span style="color: #BA2121">&#39;review&#39;</span>],
+                           <span style="color: #BA2121">&#39;ai&#39;</span>: r[<span style="color: #BA2121">&#39;sentiment&#39;</span>], <span style="color: #BA2121">&#39;human&#39;</span>: human,
+                           <span style="color: #BA2121">&#39;confidence&#39;</span>: r<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;confidence&#39;</span>, <span style="color: #666">0</span>)})
+    total <span style="color: #666">=</span> <span style="color: #008000">len</span>([r <span style="color: #008000; font-weight: bold">for</span> r <span style="color: #A2F; font-weight: bold">in</span> ai_results <span style="color: #008000; font-weight: bold">if</span> r[<span style="color: #BA2121">&#39;id&#39;</span>] <span style="color: #A2F; font-weight: bold">in</span> human_labels])
+    accuracy <span style="color: #666">=</span> correct <span style="color: #666">/</span> total <span style="color: #666">*</span> <span style="color: #666">100</span> <span style="color: #008000; font-weight: bold">if</span> total <span style="color: #008000; font-weight: bold">else</span> <span style="color: #666">0</span>
+    <span style="color: #008000; font-weight: bold">return</span> {<span style="color: #BA2121">&#39;accuracy&#39;</span>: accuracy, <span style="color: #BA2121">&#39;correct&#39;</span>: correct, <span style="color: #BA2121">&#39;total&#39;</span>: total, <span style="color: #BA2121">&#39;errors&#39;</span>: errors}
+
+v <span style="color: #666">=</span> validate_sample(sample_ai_results, human_labels)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;정확도: </span><span style="color: #A45A77; font-weight: bold">{</span>v[<span style="color: #BA2121">&#39;accuracy&#39;</span>]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">.1f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%  (맞춘 수 </span><span style="color: #A45A77; font-weight: bold">{</span>v[<span style="color: #BA2121">&#39;correct&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">/</span><span style="color: #A45A77; font-weight: bold">{</span>v[<span style="color: #BA2121">&#39;total&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">)&quot;</span>)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;✓ 목표 달성(80%↑)&quot;</span> <span style="color: #008000; font-weight: bold">if</span> v[<span style="color: #BA2121">&#39;accuracy&#39;</span>] <span style="color: #666">&gt;=</span> <span style="color: #666">80</span>
+      <span style="color: #008000; font-weight: bold">else</span> <span style="color: #BA2121">&quot;△ 개선 권장(70~80%)&quot;</span> <span style="color: #008000; font-weight: bold">if</span> v[<span style="color: #BA2121">&#39;accuracy&#39;</span>] <span style="color: #666">&gt;=</span> <span style="color: #666">70</span>
+      <span style="color: #008000; font-weight: bold">else</span> <span style="color: #BA2121">&quot;✗ 개선 필요(70% 미만)&quot;</span>)
+</code></pre></div>
+
+<h3 id="4">4. 오류 패턴 분석 — "틀렸다"보다 "왜 틀렸는지"</h3>
+<p>검증에서 정말 중요한 건 정확도 숫자 하나가 아니라, <strong>어디서·왜 틀렸는지</strong>입니다. 오류를 유형별로 묶어 보면 프롬프트를 어떻게 고칠지가 보입니다.</p>
+<table>
+<thead>
+<tr>
+<th>오류 패턴</th>
+<th>예시</th>
+<th>해결책</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>특정 감성에서 틀림</td>
+<td>중립을 자꾸 긍정으로</td>
+<td>프롬프트에 중립 기준을 더 명확히</td>
+</tr>
+<tr>
+<td>특정 키워드에서 틀림</td>
+<td>"아쉽다"를 긍정으로</td>
+<td>예외 케이스를 프롬프트에 추가</td>
+</tr>
+<tr>
+<td>짧은 리뷰에서 틀림</td>
+<td>"ㅋㅋ"를 잘못 분류</td>
+<td>짧은 리뷰 처리 규칙 추가</td>
+</tr>
+</tbody>
+</table>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 오류를 &#39;AI판단 → 실제정답&#39; 형태로 집계해 패턴을 찾습니다</span>
+error_patterns <span style="color: #666">=</span> Counter(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>e[<span style="color: #BA2121">&#39;ai&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> → </span><span style="color: #A45A77; font-weight: bold">{</span>e[<span style="color: #BA2121">&#39;human&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span> <span style="color: #008000; font-weight: bold">for</span> e <span style="color: #A2F; font-weight: bold">in</span> v[<span style="color: #BA2121">&#39;errors&#39;</span>])
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;=== 오류 상세 ===&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> e <span style="color: #A2F; font-weight: bold">in</span> v[<span style="color: #BA2121">&#39;errors&#39;</span>]:
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;ID </span><span style="color: #A45A77; font-weight: bold">{</span>e[<span style="color: #BA2121">&#39;id&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> </span><span style="color: #AA5D1F; font-weight: bold">\&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>e[<span style="color: #BA2121">&#39;review&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #AA5D1F; font-weight: bold">\&quot;</span><span style="color: #BA2121">: AI=</span><span style="color: #A45A77; font-weight: bold">{</span>e[<span style="color: #BA2121">&#39;ai&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">(</span><span style="color: #A45A77; font-weight: bold">{</span>e[<span style="color: #BA2121">&#39;confidence&#39;</span>]<span style="color: #666">*100</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">.0f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%) / 정답=</span><span style="color: #A45A77; font-weight: bold">{</span>e[<span style="color: #BA2121">&#39;human&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">=== 오류 패턴 집계 ===&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> pattern, count <span style="color: #A2F; font-weight: bold">in</span> error_patterns<span style="color: #666">.</span>most_common():
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;  </span><span style="color: #A45A77; font-weight: bold">{</span>pattern<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">: </span><span style="color: #A45A77; font-weight: bold">{</span>count<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">건&quot;</span>)
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #BA2121">=== 개선 포인트 ===&quot;</span>)
+<span style="color: #008000; font-weight: bold">if</span> error_patterns<span style="color: #666">.</span>get(<span style="color: #BA2121">&quot;POSITIVE → NEGATIVE&quot;</span>, <span style="color: #666">0</span>):
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;  - 부정적 뉘앙스 단어 인식 강화 필요&quot;</span>)
+<span style="color: #008000; font-weight: bold">if</span> error_patterns<span style="color: #666">.</span>get(<span style="color: #BA2121">&quot;POSITIVE → NEUTRAL&quot;</span>, <span style="color: #666">0</span>):
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;  - 중립 기준 명확화 필요(미적지근한 표현)&quot;</span>)
+</code></pre></div>
+
+<p>위 데이터에서는 "아쉽네요 기대했는데"(부정인데 긍정으로), "할만해요"(중립인데 긍정으로) 같은 오류가 잡힙니다. 그러면 "부정 뉘앙스 단어를 더 잘 잡게 하자", "중립 기준을 명확히 하자" 같은 <strong>구체적인 개선 방향</strong>이 나오죠.</p>
+<h3 id="5-2">5. 검증 방법 2 — 일관성 체크</h3>
+<p><strong>일관성 체크</strong>는 같은 리뷰를 여러 번 분석해서 매번 같은 결과가 나오는지 확인하는 방법입니다. 같은 입력이면 같은 답이 나와야 정상이죠. 그런데 같은 리뷰인데 "긍정 → 중립 → 긍정"으로 흔들린다면, 프롬프트가 애매하거나 경계 케이스가 많다는 신호입니다. 목표는 <strong>일관성 90% 이상</strong>입니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>SENTIMENT_PROMPT <span style="color: #666">=</span> <span style="color: #BA2121">&quot;&quot;&quot;너는 게임 리뷰 감성 분석 전문가야.</span>
+<span style="color: #BA2121">리뷰를 읽고 감성을 분류해줘: POSITIVE / NEGATIVE / NEUTRAL</span>
+<span style="color: #BA2121">JSON 형식으로 응답: {&quot;sentiment&quot;: &quot;POSITIVE/NEGATIVE/NEUTRAL&quot;}</span>
+<span style="color: #BA2121">&quot;&quot;&quot;</span>
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">check_consistency</span>(review, num_trials<span style="color: #666">=3</span>):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;같은 리뷰를 num_trials번 분석해 결과가 얼마나 일치하는지 본다.&quot;&quot;&quot;</span>
+    results <span style="color: #666">=</span> [call_llm_json(SENTIMENT_PROMPT, <span style="color: #BA2121">f&quot;리뷰: </span><span style="color: #A45A77; font-weight: bold">{</span>review<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;sentiment&#39;</span>, <span style="color: #BA2121">&#39;UNKNOWN&#39;</span>)
+               <span style="color: #008000; font-weight: bold">for</span> _ <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">range</span>(num_trials)]
+    dominant, count <span style="color: #666">=</span> Counter(results)<span style="color: #666">.</span>most_common(<span style="color: #666">1</span>)[<span style="color: #666">0</span>]
+    <span style="color: #008000; font-weight: bold">return</span> {<span style="color: #BA2121">&#39;review&#39;</span>: review, <span style="color: #BA2121">&#39;results&#39;</span>: results, <span style="color: #BA2121">&#39;dominant&#39;</span>: dominant,
+            <span style="color: #BA2121">&#39;consistency&#39;</span>: count <span style="color: #666">/</span> num_trials <span style="color: #666">*</span> <span style="color: #666">100</span>,
+            <span style="color: #BA2121">&#39;is_consistent&#39;</span>: <span style="color: #008000">len</span>(<span style="color: #008000">set</span>(results)) <span style="color: #666">==</span> <span style="color: #666">1</span>}
+
+<span style="color: #3D7B7B; font-style: italic"># API 호출을 아끼기 위해 2개만, 각 3번씩 분석</span>
+<span style="color: #008000; font-weight: bold">for</span> review <span style="color: #A2F; font-weight: bold">in</span> [<span style="color: #BA2121">&quot;게임 재밌어요!&quot;</span>, <span style="color: #BA2121">&quot;뭐... 할만해요&quot;</span>]:
+    r <span style="color: #666">=</span> check_consistency(review, num_trials<span style="color: #666">=3</span>)
+    mark <span style="color: #666">=</span> <span style="color: #BA2121">&quot;OK &quot;</span> <span style="color: #008000; font-weight: bold">if</span> r[<span style="color: #BA2121">&#39;is_consistent&#39;</span>] <span style="color: #008000; font-weight: bold">else</span> <span style="color: #BA2121">&quot;주의&quot;</span>
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;[</span><span style="color: #A45A77; font-weight: bold">{</span>mark<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">] </span><span style="color: #AA5D1F; font-weight: bold">\&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>review<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #AA5D1F; font-weight: bold">\&quot;</span><span style="color: #BA2121"> → </span><span style="color: #A45A77; font-weight: bold">{</span>r[<span style="color: #BA2121">&#39;results&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> (일관성 </span><span style="color: #A45A77; font-weight: bold">{</span>r[<span style="color: #BA2121">&#39;consistency&#39;</span>]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">.0f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%)&quot;</span>)
+</code></pre></div>
+
+<p>명확한 리뷰("재밌어요!")는 3번 모두 같게 나오지만, 애매한 리뷰는 결과가 갈릴 수 있습니다. <strong>일관성이 낮은 리뷰가 곧 프롬프트가 헷갈려 하는 지점</strong>입니다.</p>
+<h3 id="6-3">6. 검증 방법 3 — 분포 확인</h3>
+<p><strong>분포 확인</strong>은 전체 결과의 비율이 합리적인지 보는 방법입니다. 세 가지를 점검합니다.</p>
+<ul>
+<li><strong>극단적 쏠림</strong> — 긍정이 99%? 뭔가 이상합니다. 프롬프트가 편향됐거나 데이터 문제일 수 있습니다.</li>
+<li><strong>기존 데이터와 비교</strong> — 이전 분석과 크게 다르면 확인이 필요합니다.</li>
+<li><strong>도메인 상식과 비교</strong> — 평이 좋은 게임인데 부정이 80%? 수집·분석에 오류가 있을 수 있습니다.</li>
+</ul>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">check_distribution</span>(ai_results):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;감성 비율을 계산하고, 극단적 쏠림 등 이상 징후를 경고로 띄운다.&quot;&quot;&quot;</span>
+    sentiments <span style="color: #666">=</span> [r[<span style="color: #BA2121">&#39;sentiment&#39;</span>] <span style="color: #008000; font-weight: bold">for</span> r <span style="color: #A2F; font-weight: bold">in</span> ai_results]
+    dist <span style="color: #666">=</span> Counter(sentiments)
+    total <span style="color: #666">=</span> <span style="color: #008000">len</span>(sentiments)
+    ratios <span style="color: #666">=</span> {k: v <span style="color: #666">/</span> total <span style="color: #666">*</span> <span style="color: #666">100</span> <span style="color: #008000; font-weight: bold">for</span> k, v <span style="color: #A2F; font-weight: bold">in</span> dist<span style="color: #666">.</span>items()}
+    warnings <span style="color: #666">=</span> []
+    <span style="color: #008000; font-weight: bold">for</span> s, ratio <span style="color: #A2F; font-weight: bold">in</span> ratios<span style="color: #666">.</span>items():
+        <span style="color: #008000; font-weight: bold">if</span> ratio <span style="color: #666">&gt;</span> <span style="color: #666">90</span>:
+            warnings<span style="color: #666">.</span>append(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>s<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">가 </span><span style="color: #A45A77; font-weight: bold">{</span>ratio<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">.0f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%로 극단적 쏠림&quot;</span>)
+        <span style="color: #008000; font-weight: bold">elif</span> ratio <span style="color: #666">&lt;</span> <span style="color: #666">5</span> <span style="color: #A2F; font-weight: bold">and</span> total <span style="color: #666">&gt;</span> <span style="color: #666">20</span>:
+            warnings<span style="color: #666">.</span>append(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>s<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">가 </span><span style="color: #A45A77; font-weight: bold">{</span>ratio<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">.0f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%로 거의 없음&quot;</span>)
+    <span style="color: #008000; font-weight: bold">return</span> {<span style="color: #BA2121">&#39;dist&#39;</span>: dist, <span style="color: #BA2121">&#39;ratios&#39;</span>: ratios, <span style="color: #BA2121">&#39;warnings&#39;</span>: warnings, <span style="color: #BA2121">&#39;healthy&#39;</span>: <span style="color: #A2F; font-weight: bold">not</span> warnings}
+
+d <span style="color: #666">=</span> check_distribution(sample_ai_results)
+<span style="color: #008000; font-weight: bold">for</span> s, c <span style="color: #A2F; font-weight: bold">in</span> d[<span style="color: #BA2121">&#39;dist&#39;</span>]<span style="color: #666">.</span>items():
+    bar <span style="color: #666">=</span> <span style="color: #BA2121">&quot;█&quot;</span> <span style="color: #666">*</span> <span style="color: #008000">int</span>(d[<span style="color: #BA2121">&#39;ratios&#39;</span>][s] <span style="color: #666">/</span> <span style="color: #666">5</span>)
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;  </span><span style="color: #A45A77; font-weight: bold">{</span>s<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">10</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">: </span><span style="color: #A45A77; font-weight: bold">{</span>c<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">2</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">개 (</span><span style="color: #A45A77; font-weight: bold">{</span>d[<span style="color: #BA2121">&#39;ratios&#39;</span>][s]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">4.0f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%) </span><span style="color: #A45A77; font-weight: bold">{</span>bar<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;분포 정상&quot;</span> <span style="color: #008000; font-weight: bold">if</span> d[<span style="color: #BA2121">&#39;healthy&#39;</span>] <span style="color: #008000; font-weight: bold">else</span> <span style="color: #BA2121">&quot;경고: &quot;</span> <span style="color: #666">+</span> <span style="color: #BA2121">&quot;, &quot;</span><span style="color: #666">.</span>join(d[<span style="color: #BA2121">&#39;warnings&#39;</span>]))
+</code></pre></div>
+
+<p>세 검증법은 <strong>드는 시간과 쓰는 타이밍</strong>이 다릅니다. 상황에 맞게 골라 쓰면 됩니다.</p>
+<table>
+<thead>
+<tr>
+<th>방법</th>
+<th>확인 내용</th>
+<th>필요 시간</th>
+<th>언제 쓰나</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>샘플 검증</td>
+<td>AI가 실제로 맞췄는지</td>
+<td>30분~1시간</td>
+<td>첫 분석 후, 프롬프트 변경 후</td>
+</tr>
+<tr>
+<td>일관성 체크</td>
+<td>같은 입력에 같은 결과?</td>
+<td>10분</td>
+<td>새 프롬프트 테스트 시</td>
+</tr>
+<tr>
+<td>분포 확인</td>
+<td>결과 분포가 합리적인지</td>
+<td>5분</td>
+<td>매 분석 후 (습관처럼)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="7">7. 품질을 숫자로 관리하기 — 지표 대시보드</h3>
+<p>이제 품질을 "느낌"이 아니라 <strong>"숫자"</strong>로 관리합니다. 세 가지 지표를 정해 목표와 비교하는 거죠.</p>
+<table>
+<thead>
+<tr>
+<th>지표</th>
+<th>공식</th>
+<th>목표</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>정확도(accuracy)</td>
+<td>맞춘 수 / 전체</td>
+<td>80% 이상</td>
+</tr>
+<tr>
+<td>일관성(consistency)</td>
+<td>동일 결과 / 반복 횟수</td>
+<td>90% 이상</td>
+</tr>
+<tr>
+<td>채택률(adoption)</td>
+<td>confident 수 / 전체 (지난 강 신뢰도 임계값을 통과한 비율)</td>
+<td>70% 이상</td>
+</tr>
+</tbody>
+</table>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">quality_dashboard</span>(ai_results, human_labels, conf_threshold<span style="color: #666">=0.7</span>):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;정확도·채택률·분포 건강도를 한 번에 보여주는 품질 대시보드.&quot;&quot;&quot;</span>
+    accuracy <span style="color: #666">=</span> validate_sample(ai_results, human_labels)[<span style="color: #BA2121">&#39;accuracy&#39;</span>]
+    confident <span style="color: #666">=</span> <span style="color: #008000">sum</span>(<span style="color: #666">1</span> <span style="color: #008000; font-weight: bold">for</span> r <span style="color: #A2F; font-weight: bold">in</span> ai_results <span style="color: #008000; font-weight: bold">if</span> r<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;confidence&#39;</span>, <span style="color: #666">0</span>) <span style="color: #666">&gt;=</span> conf_threshold)
+    adoption <span style="color: #666">=</span> confident <span style="color: #666">/</span> <span style="color: #008000">len</span>(ai_results) <span style="color: #666">*</span> <span style="color: #666">100</span> <span style="color: #008000; font-weight: bold">if</span> ai_results <span style="color: #008000; font-weight: bold">else</span> <span style="color: #666">0</span>
+    healthy <span style="color: #666">=</span> <span style="color: #666">100</span> <span style="color: #008000; font-weight: bold">if</span> check_distribution(ai_results)[<span style="color: #BA2121">&#39;healthy&#39;</span>] <span style="color: #008000; font-weight: bold">else</span> <span style="color: #666">50</span>
+    <span style="color: #008000; font-weight: bold">return</span> {
+        <span style="color: #BA2121">&#39;정확도&#39;</span>:   {<span style="color: #BA2121">&#39;value&#39;</span>: accuracy, <span style="color: #BA2121">&#39;target&#39;</span>: <span style="color: #666">80</span>},
+        <span style="color: #BA2121">&#39;채택률&#39;</span>:   {<span style="color: #BA2121">&#39;value&#39;</span>: adoption, <span style="color: #BA2121">&#39;target&#39;</span>: <span style="color: #666">70</span>},
+        <span style="color: #BA2121">&#39;분포건강&#39;</span>: {<span style="color: #BA2121">&#39;value&#39;</span>: healthy,  <span style="color: #BA2121">&#39;target&#39;</span>: <span style="color: #666">100</span>},
+    }
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;=&quot;</span> <span style="color: #666">*</span> <span style="color: #666">40</span>)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;        품질 지표 대시보드&quot;</span>)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;=&quot;</span> <span style="color: #666">*</span> <span style="color: #666">40</span>)
+<span style="color: #008000; font-weight: bold">for</span> name, m <span style="color: #A2F; font-weight: bold">in</span> quality_dashboard(sample_ai_results, human_labels)<span style="color: #666">.</span>items():
+    mark <span style="color: #666">=</span> <span style="color: #BA2121">&quot;OK &quot;</span> <span style="color: #008000; font-weight: bold">if</span> m[<span style="color: #BA2121">&#39;value&#39;</span>] <span style="color: #666">&gt;=</span> m[<span style="color: #BA2121">&#39;target&#39;</span>] <span style="color: #008000; font-weight: bold">else</span> <span style="color: #BA2121">&quot;미달&quot;</span>
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;  [</span><span style="color: #A45A77; font-weight: bold">{</span>mark<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">] </span><span style="color: #A45A77; font-weight: bold">{</span>name<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">8</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">: </span><span style="color: #A45A77; font-weight: bold">{</span>m[<span style="color: #BA2121">&#39;value&#39;</span>]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">5.1f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">  (목표 </span><span style="color: #A45A77; font-weight: bold">{</span>m[<span style="color: #BA2121">&#39;target&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">)&quot;</span>)
+</code></pre></div>
+
+<p>이 모든 걸 한 흐름으로 묶으면 <strong>품질 관리 워크플로우</strong>가 됩니다. ① 분석 실행 → ② 분포 확인(빠르게 이상 여부) → ③ 샘플 검증(정확도 측정) → ④ 오류 패턴 분석 → ⑤ 프롬프트 개선·재분석. 그리고 이 사이클을 <strong>반복</strong>하면서 품질을 끌어올립니다. 우리는 이제 감으로 판단하는 시대가 아니라 <strong>데이터로 의사결정하는 시대</strong>에 살고 있고, 그 데이터의 품질을 지표로 관리하는 것이 실무의 KPI 사고와 그대로 연결됩니다.</p>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>신뢰도(confidence)</td>
+<td>AI가 스스로 느끼는 확신 정도(자가 평가)</td>
+</tr>
+<tr>
+<td>정확도(accuracy)</td>
+<td>정답과 비교해 실제로 맞춘 비율(객관적)</td>
+</tr>
+<tr>
+<td>레이블(label)</td>
+<td>사람이 직접 만든 정답 데이터. AI의 핵심 자산</td>
+</tr>
+<tr>
+<td>샘플 검증</td>
+<td>무작위 50~100개를 사람이 분류해 정확도 측정(목표 80%↑)</td>
+</tr>
+<tr>
+<td>일관성 체크</td>
+<td>같은 리뷰를 여러 번 분석해 결과가 같은지 확인(목표 90%↑)</td>
+</tr>
+<tr>
+<td>분포 확인</td>
+<td>전체 감성 비율이 합리적인지 점검(극단 쏠림·도메인 상식)</td>
+</tr>
+<tr>
+<td>품질 지표</td>
+<td>정확도·일관성·채택률을 숫자로 정의해 모니터링</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>이 강의 핵심은 기획자에게 익숙한 <strong>KPI 사고</strong>입니다. "리뷰 분석이 잘 되고 있다"를 느낌이 아니라 <em>정확도 82%, 일관성 95%, 채택률 73%</em>처럼 지표로 말하면, 분석 자체가 신뢰받는 의사결정 근거가 됩니다. 특히 <strong>오류 패턴 분석</strong>은 기획에 직접 쓰입니다 — "중립을 자꾸 긍정으로 본다"는 패턴은 곧 "우리 게임에서 미적지근한 반응을 과대평가하고 있다"는 경고이고, 이건 곧 라이브 지표 해석의 보정값이 됩니다. 그리고 레이블(정답 데이터)이 곧 자산이라는 통찰은, 운영하면서 쌓이는 <em>우리 게임만의 분류 기준</em>(예: "엔드 콘텐츠 부족=부정")을 데이터로 축적해 두면 그 자체가 경쟁력이 된다는 뜻입니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>신뢰도(confidence)와 정확도(accuracy)를 같다고 보면 안 됩니다.</strong> AI가 자신 있어 하는 것과 실제로 맞추는 건 별개입니다. 정확도는 정답과 비교해야만 알 수 있습니다.</li>
+<li><strong>샘플 검증의 "사람이 분류" 단계는 생략할 수 없습니다.</strong> 정답(레이블)이 없으면 정확도를 잴 수 없습니다. 시간이 들어도 이게 검증의 핵심입니다.</li>
+<li><strong>정확도만 보고 끝내면 안 됩니다.</strong> "왜 틀렸는지" 패턴을 봐야 프롬프트를 고칠 수 있습니다.</li>
+<li><strong>일관성이 낮다고 모델 탓만 하지 마세요.</strong> 대개 프롬프트가 애매하거나 경계 케이스가 많다는 신호입니다.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li><strong>신뢰도 ≠ 정확도.</strong> AI가 자신 있다고 항상 맞는 게 아니므로 반드시 검증합니다.</li>
+<li>검증은 세 가지 — <strong>샘플 검증</strong>(정확도 80%↑), <strong>일관성 체크</strong>(90%↑), <strong>분포 확인</strong>(극단 쏠림·도메인 상식).</li>
+<li>품질을 <strong>숫자(지표)</strong>로 관리하고, "왜 틀렸는지" 오류 패턴으로 프롬프트를 개선하는 사이클을 돕니다.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>다음 27차시는 <strong>프로젝트 시간(영상 없이 직접 실습)</strong> — 검증에서 발견한 오류를 실제로 고치는 <strong>분석 품질 개선</strong>입니다. 오류 패턴을 분석하고 프롬프트를 개선하며 경계 케이스 처리 전략을 세워, 품질 목표 달성까지 반복합니다. 이어지는 이 해설 모음의 3강(28차시 <strong>시계열 분석과 트렌드</strong>)에서는 리뷰를 "한 덩어리"로 보던 데서 나아가 시간 축을 더합니다 — 같은 "긍정 65%"라도 <em>오르는 중</em>인지 <em>떨어지는 중</em>인지 가려내고, 이동 평균으로 노이즈를 걷어내며 변화점에서 원인을 찾는 법을 배웁니다.</p>
+</article>
+<div class="pager"><a class="prev" href="1강.html"><span class="lbl">← 이전</span><span class="ttl">1강 — 확률과 신뢰도 해석</span></a><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><a class="next" href="3강.html"><span class="lbl">다음 →</span><span class="ttl">3강 — 시계열 분석과 트렌드</span></a></div>
+</div>
+</body>
+</html>

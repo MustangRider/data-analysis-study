@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4강 — AI 편향과 공정성</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-04 · 4강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="4-ai">4강 — AI 편향과 공정성</h1>
+<blockquote>
+<p>4강 (29차시)</p>
+</blockquote>
+<h2 id="_1">🎯 학습 목표</h2>
+<ul>
+<li>AI 분석 결과에 <strong>편향이 있을 수 있음</strong>을 인식하고, 그것이 왜 내 문제인지 안다</li>
+<li>편향이 <strong>어느 단계에서 어떤 유형으로</strong> 생기는지 설명할 수 있다</li>
+<li><strong>편향 점검 체크리스트</strong>와 완화 전략을 활용할 수 있다</li>
+<li>분석 보고서에 <strong>데이터 범위·한계점을 투명하게 명시</strong>할 수 있다</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<h3 id="1-ai">1. AI가 판단한 결과, 무조건 믿어도 될까요?</h3>
+<p>"무거운 주제 같다"고 느끼실 수 있는데, 이건 도덕 수업이 아닙니다. <strong>내 분석 결과가 신뢰받으려면 무엇을 점검해야 하는가</strong>, 실무에서 바로 쓰는 이야기입니다.</p>
+<p>LLM이 "이 리뷰는 긍정입니다"라고 하면 맞는 걸까요? AI도 틀립니다. 그런데 중요한 건 <strong>그냥 랜덤하게 틀리는 게 아니라 체계적으로, 특정 패턴으로 편향되게 틀린다</strong>는 점입니다. 실제 사례를 보면 무슨 말인지 바로 이해됩니다.</p>
+<h3 id="2">2. 충격적인 실제 사례 셋</h3>
+<p><strong>사례 1 — 채용 AI의 성별 편향.</strong> 한 글로벌 대형 IT 기업이 이력서를 넣으면 점수를 매기는 AI 채용 시스템을 만들었습니다. 효율적이고 객관적일 거라 기대했죠. 그런데 운영해 보니 비슷한 스펙인데도 <strong>여성 지원자가 체계적으로 낮은 점수</strong>를 받았습니다. 과거 10년 채용 데이터로 학습했는데, IT 업계가 남성 위주였던 탓에 AI가 "남성 = 합격 확률 높음"으로 학습해 버린 거죠. 결국 프로젝트는 전면 중단됐고, 언론에 크게 보도되며 기업 이미지에 타격을 입었습니다.</p>
+<p><strong>사례 2 — 안면인식의 인종별 정확도 차이.</strong> MIT 미디어랩의 'Gender Shades' 연구 결과가 충격적이었습니다.</p>
+<table>
+<thead>
+<tr>
+<th>대상</th>
+<th>인식 정확도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>피부색 밝은 남성</td>
+<td>99%</td>
+</tr>
+<tr>
+<td>피부색 어두운 여성</td>
+<td>65%</td>
+</tr>
+<tr>
+<td><strong>격차</strong></td>
+<td><strong>34%p</strong></td>
+</tr>
+</tbody>
+</table>
+<p>학습 데이터에 백인 남성 사진이 압도적으로 많아 그게 "기본값"이 된 겁니다. 이 때문에 무고한 사람이 체포되는 일도 있었고, 집단 소송이 이어졌으며, 일부 도시는 경찰의 안면인식 사용을 아예 금지했습니다.</p>
+<p><strong>사례 3 — 의료 AI의 치료 추천 차별.</strong> Science 저널에 실린 연구입니다. 미국에서 널리 쓰이는 의료 AI가 <strong>같은 증상인데 흑인 환자에게 치료를 추천하는 확률이 백인의 절반 수준</strong>이었습니다. 과거 의료비 지출을 기준으로 학습했는데, 흑인 환자들이 경제적 이유로 지출이 적었던 걸 "건강하다"로 학습한 거죠. 이 시스템이 <strong>수천만 명</strong>에게 적용되고 있었습니다. 생명과 직결된 문제입니다.</p>
+<p>세 사례의 공통점은 하나입니다. <strong>AI는 객관적이지 않습니다.</strong> 데이터로 학습하기에, 데이터에 편향이 있으면 AI도 그대로 편향됩니다. <strong>과거의 불평등이 AI를 통해 미래에도 재생산되는</strong> 것입니다. 그러니 "AI가 판단했으니 객관적이다"라고 믿으면 위험합니다.</p>
+<h3 id="3">3. 이게 왜 내 문제인가요?</h3>
+<p>"이건 다 대기업 얘기지, 난 그냥 리뷰 분석하는 건데?" 싶으실 겁니다. 그런데 리뷰 분석에서도 똑같이 문제가 됩니다.</p>
+<ul>
+<li><strong>"한국 유저 평가가 좋습니다"라고 보고</strong> → 실제론 영어 리뷰만 분석했습니다. 나중에 "한국 유저 평가를 어떻게 알았냐"고 물으면 답을 못 합니다. → <em>분석을 신뢰할 수 없다는 낙인.</em></li>
+<li><strong>"부정 리뷰 15%, 문제없음"이라고 보고</strong> → 전체 평균이었고, 최근 한 달만 보면 부정이 45%였습니다. → <em>문제를 평균에 묻어 잘못된 의사결정, 책임 추궁.</em></li>
+<li><strong>"우리 게임이 경쟁사보다 평가 좋음"</strong> → 경쟁사는 최근 리뷰, 우리는 출시 초기 꿀평 시절 리뷰로 비교했습니다. → <em>비교 기준이 불공정해 분석 가치 상실.</em></li>
+</ul>
+<p>그래서 핵심 메시지는 이겁니다. <strong>편향 점검은 '윤리'가 아니라 '리스크 관리'입니다.</strong> 착한 사람이 되자는 게 아니라, <strong>내 분석이 신뢰받으려면 필수</strong>라는 거죠. 이게 안 되면 분석 결과 자체가 가치를 잃습니다. 스스로 점검하는 습관이 여러분의 커리어를 지켜 줍니다.</p>
+<h3 id="4-4">4. 편향은 어디서 생기나 — 파이프라인 4지점</h3>
+<p>편향은 분석 파이프라인의 <strong>모든 단계</strong>에서 생길 수 있습니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>데이터 수집  →  전처리  →  LLM 분석  →  결과 해석
+     ↓           ↓          ↓            ↓
+ 샘플링 편향   선택 편향   모델 편향    확증 편향
+</code></pre></div>
+
+<table>
+<thead>
+<tr>
+<th>단계</th>
+<th>편향 유형</th>
+<th>예시</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>수집</td>
+<td>샘플링 편향</td>
+<td>영어 리뷰만 수집 → 비영어권 의견 누락</td>
+</tr>
+<tr>
+<td>전처리</td>
+<td>선택 편향</td>
+<td>짧은 리뷰 제외 → 단답형 부정 의견 누락</td>
+</tr>
+<tr>
+<td>분석</td>
+<td>모델 편향</td>
+<td>LLM이 특정 표현을 잘 못 이해</td>
+</tr>
+<tr>
+<td>해석</td>
+<td>확증 편향</td>
+<td>원하는 결론에 맞는 것만 강조</td>
+</tr>
+</tbody>
+</table>
+<p>특히 <strong>전처리 단계</strong>가 위험합니다. "10자 미만 리뷰 제외" 같은 평범해 보이는 필터가 "별로", "노잼", "환불함", "최악" 같은 <strong>단답형 부정 리뷰를 골라서 빼버릴 수</strong> 있거든요. 그러면 결과가 실제보다 긍정적으로 왜곡됩니다. 그래서 필터링 전후의 감성 분포 변화를 꼭 확인해야 합니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 이 강은 외부 API 없이 점검 로직만 다룹니다.</span>
+<span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">json</span>
+<span style="color: #008000; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">datetime</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">import</span> datetime
+
+<span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">check_preprocessing_bias</span>(before, after):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;필터링 전후 감성 분포를 비교해 5%p 이상 변하면 편향으로 경고.&quot;&quot;&quot;</span>
+    <span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">rates</span>(dist):
+        total <span style="color: #666">=</span> <span style="color: #008000">sum</span>(dist<span style="color: #666">.</span>values())
+        <span style="color: #008000; font-weight: bold">return</span> {k: <span style="color: #008000">round</span>(v <span style="color: #666">/</span> total <span style="color: #666">*</span> <span style="color: #666">100</span>, <span style="color: #666">1</span>) <span style="color: #008000; font-weight: bold">for</span> k, v <span style="color: #A2F; font-weight: bold">in</span> dist<span style="color: #666">.</span>items()} <span style="color: #008000; font-weight: bold">if</span> total <span style="color: #008000; font-weight: bold">else</span> dist
+    before_r, after_r <span style="color: #666">=</span> rates(before), rates(after)
+    changes <span style="color: #666">=</span> {k: <span style="color: #008000">round</span>(after_r[k] <span style="color: #666">-</span> before_r[k], <span style="color: #666">1</span>) <span style="color: #008000; font-weight: bold">for</span> k <span style="color: #A2F; font-weight: bold">in</span> before_r}
+    bias <span style="color: #666">=</span> <span style="color: #008000">any</span>(<span style="color: #008000">abs</span>(v) <span style="color: #666">&gt;=</span> <span style="color: #666">5</span> <span style="color: #008000; font-weight: bold">for</span> v <span style="color: #A2F; font-weight: bold">in</span> changes<span style="color: #666">.</span>values())
+    <span style="color: #008000; font-weight: bold">return</span> {<span style="color: #BA2121">&#39;before&#39;</span>: before_r, <span style="color: #BA2121">&#39;after&#39;</span>: after_r, <span style="color: #BA2121">&#39;changes&#39;</span>: changes,
+            <span style="color: #BA2121">&#39;bias_detected&#39;</span>: bias, <span style="color: #BA2121">&#39;removed&#39;</span>: <span style="color: #008000">sum</span>(before<span style="color: #666">.</span>values()) <span style="color: #666">-</span> <span style="color: #008000">sum</span>(after<span style="color: #666">.</span>values())}
+
+<span style="color: #3D7B7B; font-style: italic"># 짧은 리뷰를 걸렀더니 부정이 많이 빠진 상황</span>
+before <span style="color: #666">=</span> {<span style="color: #BA2121">&#39;positive&#39;</span>: <span style="color: #666">600</span>, <span style="color: #BA2121">&#39;negative&#39;</span>: <span style="color: #666">300</span>, <span style="color: #BA2121">&#39;neutral&#39;</span>: <span style="color: #666">100</span>}   <span style="color: #3D7B7B; font-style: italic"># 1000건</span>
+after  <span style="color: #666">=</span> {<span style="color: #BA2121">&#39;positive&#39;</span>: <span style="color: #666">580</span>, <span style="color: #BA2121">&#39;negative&#39;</span>: <span style="color: #666">220</span>, <span style="color: #BA2121">&#39;neutral&#39;</span>: <span style="color: #666">80</span>}    <span style="color: #3D7B7B; font-style: italic"># 880건 (120건 제외)</span>
+r <span style="color: #666">=</span> check_preprocessing_bias(before, after)
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;제외된 데이터: </span><span style="color: #A45A77; font-weight: bold">{</span>r[<span style="color: #BA2121">&#39;removed&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">건 / 편향 </span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;감지됨&#39;</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">if</span><span style="color: #BBB"> </span>r[<span style="color: #BA2121">&#39;bias_detected&#39;</span>]<span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">else</span><span style="color: #BBB"> </span><span style="color: #BA2121">&#39;없음&#39;</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;감성&#39;</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^10</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;필터 전&#39;</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^9</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;필터 후&#39;</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^9</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #BA2121">&#39;변화&#39;</span><span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^9</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> s <span style="color: #A2F; font-weight: bold">in</span> [<span style="color: #BA2121">&#39;positive&#39;</span>, <span style="color: #BA2121">&#39;negative&#39;</span>, <span style="color: #BA2121">&#39;neutral&#39;</span>]:
+    flag <span style="color: #666">=</span> <span style="color: #BA2121">&quot; (주의)&quot;</span> <span style="color: #008000; font-weight: bold">if</span> <span style="color: #008000">abs</span>(r[<span style="color: #BA2121">&#39;changes&#39;</span>][s]) <span style="color: #666">&gt;=</span> <span style="color: #666">5</span> <span style="color: #008000; font-weight: bold">else</span> <span style="color: #BA2121">&quot;&quot;</span>
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>s<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^10</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">|</span><span style="color: #A45A77; font-weight: bold">{</span>r[<span style="color: #BA2121">&#39;before&#39;</span>][s]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^8</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%|</span><span style="color: #A45A77; font-weight: bold">{</span>r[<span style="color: #BA2121">&#39;after&#39;</span>][s]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">^8</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%|</span><span style="color: #A45A77; font-weight: bold">{</span>r[<span style="color: #BA2121">&#39;changes&#39;</span>][s]<span style="color: #A45A77; font-weight: bold">:</span><span style="color: #BA2121">+6.1f</span><span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%p</span><span style="color: #A45A77; font-weight: bold">{</span>flag<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+</code></pre></div>
+
+<p>위 예시에서는 짧은 리뷰 120건을 제외했더니 긍정이 <strong>60% → 65.9%로 올라가고 부정은 30% → 25%로 뚝 떨어집니다.</strong> 이걸 모르고 "긍정 비율 높네!"라고 보고하면, 사실은 <strong>부정을 걸러내 놓고 게임이 좋다고 오해</strong>하는 셈입니다.</p>
+<h3 id="5">5. 리뷰 분석에서 흔한 편향들</h3>
+<p>우리 작업에서 자주 생기는 편향은 네 가지입니다.</p>
+<ul>
+<li><strong>언어 편향</strong> — 영어 리뷰만 보면 한국·일본·중국 유저 의견이 통째로 빠집니다. 한국에서만 터진 버그를 모를 수 있죠.</li>
+<li><strong>시간 편향</strong> — 전체 평균만 보면 최근 급락을 놓칩니다(지난 강 시계열이 중요한 이유입니다).</li>
+<li><strong>길이 편향</strong> — 짧은 리뷰를 빼면 단답형 부정이 빠지고, 긴 리뷰엔 열성 팬이 많아 긍정 쪽으로 기웁니다.</li>
+<li><strong>플랫폼 편향</strong> — Steam만 보면 콘솔·모바일·에픽 유저는 모릅니다.</li>
+</ul>
+<p><strong>LLM 자체도 편향</strong>이 있습니다. 알고 계셔야 합니다.</p>
+<table>
+<thead>
+<tr>
+<th>LLM 편향</th>
+<th>설명</th>
+<th>원인</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>문화적 편향</td>
+<td>"ㄹㅇ 꿀잼"을 긍정으로 못 잡음</td>
+<td>한국 신조어 학습 부족</td>
+</tr>
+<tr>
+<td>중립 편향</td>
+<td>명확한 감성인데 자꾸 중립 판정</td>
+<td>안전한 답을 선호하게 튜닝됨</td>
+</tr>
+<tr>
+<td>긍정 편향</td>
+<td>모호하면 긍정으로 분류</td>
+<td>학습 데이터에 긍정이 많았을 가능성</td>
+</tr>
+<tr>
+<td>맥락 무시</td>
+<td>"이 게임 참 쉽네요"가 칭찬인지 비꼼인지 못 가림</td>
+<td>앞뒤 맥락 없이 문장만 보면 어려움</td>
+</tr>
+</tbody>
+</table>
+<p>중립이 30%를 넘으면 LLM이 판단을 회피하는 건 아닌지 점검해 보세요. (참고로 세계 각국이 자체 LLM, 이른바 <strong>소버린 AI</strong> 구축에 투자하는 것도 이 문화적 편향과 무관하지 않습니다 — 외국 LLM보다 자국 LLM이 우리 문화·정서를 더 잘 이해할 수 있으니까요. 우리나라도 자체 AI 개발에 큰 투자가 일어나고 있습니다.)</p>
+<p><strong>게임 업계 특유의 편향</strong>도 있습니다. ① <strong>리뷰 폭탄</strong> — 게임 품질과 무관하게 개발사 논란 등으로 부정 리뷰가 쏟아지는 기간. ② <strong>무료 vs 유료 플레이어</strong> — 무료 전환 후 들어온 유저는 "재밌다", 돈 주고 산 기존 유저는 "예전이 좋았다"며 상반된 평가가 공존. ③ <strong>얼리 액세스 편향</strong> — 초기 구매자는 코어 팬층이라 그들의 리뷰가 평점을 지배하면 일반 유저 반응과 괴리가 생깁니다.</p>
+<p>마지막으로 <strong>프롬프트 자체도 편향</strong>을 만듭니다. "이 리뷰에서 문제점을 찾아줘"라고 하면 없는 문제도 찾으려 합니다. "긍정이야 부정이야?"처럼 이분법으로 물으면 중립·복합 감성을 놓칩니다. "감성과 주요 내용을 분석해줘"처럼 <strong>중립적으로</strong>, 그리고 게임·시기에 대한 <strong>맥락을 충분히</strong> 주는 게 정확합니다.</p>
+<h3 id="6">6. 분석가인 나의 편향 — 확증 편향</h3>
+<p>AI만 편향된 게 아닙니다. <strong>분석하는 우리도</strong> 편향이 있습니다. 세 가지 위험 신호를 자가 진단해 봅시다.</p>
+<ol>
+<li><strong>원하는 결론을 미리 정해 놓고 시작하진 않았나?</strong> "이 게임 평가 좋을 거야"라고 기대하면 그걸 뒷받침하는 것만 보게 됩니다.</li>
+<li><strong>내 결론을 받쳐 주는 데이터만 강조하진 않나?</strong> 반대 데이터를 "예외·이상치"로 치부하면 안 됩니다.</li>
+<li><strong>불편한 결과가 나왔을 때 "뭔가 잘못됐나" 하며 다시 분석하고 싶진 않았나?</strong> 이게 위험 신호입니다. 불편한 결과일수록 <strong>왜 그런지 더 깊이</strong> 파야 가치가 있습니다.</li>
+</ol>
+<p>가설은 세우되 <strong>반대 증거도 적극적으로</strong> 찾는 태도, 자신의 편향을 인식하는 것이 첫걸음입니다.</p>
+<h3 id="7">7. 점검 도구 — 체크리스트와 완화 전략</h3>
+<p>편향이 이렇게 많으면 뭘 믿어야 하나 싶죠. 답은 <strong>체크리스트</strong>입니다. 매번 같은 항목을 점검하면 놓치는 게 줄어듭니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>BIAS_CHECKLIST <span style="color: #666">=</span> {
+    <span style="color: #BA2121">&quot;1. 데이터 수집&quot;</span>: [
+        <span style="color: #BA2121">&quot;수집 언어가 타겟 시장을 대표하는가?&quot;</span>,
+        <span style="color: #BA2121">&quot;수집 기간이 분석 목적에 적합한가?&quot;</span>,
+        <span style="color: #BA2121">&quot;특정 조건(길이·추천수 등)으로 제외된 데이터가 있는가?&quot;</span>,
+    ],
+    <span style="color: #BA2121">&quot;2. 전처리&quot;</span>: [
+        <span style="color: #BA2121">&quot;제외된 데이터의 감성 분포를 확인했는가?&quot;</span>,
+        <span style="color: #BA2121">&quot;필터링 전후 감성 비율 변화가 5%p 이내인가?&quot;</span>,
+    ],
+    <span style="color: #BA2121">&quot;3. LLM 분석&quot;</span>: [
+        <span style="color: #BA2121">&quot;판정 분포가 합리적인가? (중립 &lt; 30%)&quot;</span>,
+        <span style="color: #BA2121">&quot;특정 감성에 편향되지 않았는가? (긍정 &lt; 80%)&quot;</span>,
+        <span style="color: #BA2121">&quot;샘플 검증으로 정확도를 확인했는가?&quot;</span>,
+    ],
+    <span style="color: #BA2121">&quot;4. 결과 해석&quot;</span>: [
+        <span style="color: #BA2121">&quot;결론이 데이터에 근거하는가?&quot;</span>,
+        <span style="color: #BA2121">&quot;반대 증거도 고려했는가?&quot;</span>,
+        <span style="color: #BA2121">&quot;한계점을 명시했는가?&quot;</span>,
+    ],
+}
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;=== AI 분석 편향 점검 체크리스트 ===&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> stage, items <span style="color: #A2F; font-weight: bold">in</span> BIAS_CHECKLIST<span style="color: #666">.</span>items():
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;</span><span style="color: #AA5D1F; font-weight: bold">\n</span><span style="color: #A45A77; font-weight: bold">{</span>stage<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+    <span style="color: #008000; font-weight: bold">for</span> it <span style="color: #A2F; font-weight: bold">in</span> items:
+        <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;  [ ] </span><span style="color: #A45A77; font-weight: bold">{</span>it<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+</code></pre></div>
+
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">check_llm_result_distribution</span>(results):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;LLM 결과 분포에서 중립 과다·긍정 쏠림·부정 누락 같은 이상 징후를 경고.&quot;&quot;&quot;</span>
+    dist <span style="color: #666">=</span> {<span style="color: #BA2121">&#39;positive&#39;</span>: <span style="color: #666">0</span>, <span style="color: #BA2121">&#39;negative&#39;</span>: <span style="color: #666">0</span>, <span style="color: #BA2121">&#39;neutral&#39;</span>: <span style="color: #666">0</span>}
+    <span style="color: #008000; font-weight: bold">for</span> r <span style="color: #A2F; font-weight: bold">in</span> results:
+        s <span style="color: #666">=</span> r<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;sentiment&#39;</span>, <span style="color: #BA2121">&#39;unknown&#39;</span>)<span style="color: #666">.</span>lower()
+        <span style="color: #008000; font-weight: bold">if</span> s <span style="color: #A2F; font-weight: bold">in</span> dist:
+            dist[s] <span style="color: #666">+=</span> <span style="color: #666">1</span>
+    total <span style="color: #666">=</span> <span style="color: #008000">sum</span>(dist<span style="color: #666">.</span>values())
+    rates <span style="color: #666">=</span> {k: <span style="color: #008000">round</span>(v <span style="color: #666">/</span> total <span style="color: #666">*</span> <span style="color: #666">100</span>, <span style="color: #666">1</span>) <span style="color: #008000; font-weight: bold">for</span> k, v <span style="color: #A2F; font-weight: bold">in</span> dist<span style="color: #666">.</span>items()} <span style="color: #008000; font-weight: bold">if</span> total <span style="color: #008000; font-weight: bold">else</span> dist
+    warnings <span style="color: #666">=</span> []
+    <span style="color: #008000; font-weight: bold">if</span> rates[<span style="color: #BA2121">&#39;neutral&#39;</span>] <span style="color: #666">&gt;=</span> <span style="color: #666">30</span>:
+        warnings<span style="color: #666">.</span>append(<span style="color: #BA2121">f&quot;중립 편향 의심: 중립 </span><span style="color: #A45A77; font-weight: bold">{</span>rates[<span style="color: #BA2121">&#39;neutral&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">% (≥30%) → 판단 회피 가능성&quot;</span>)
+    <span style="color: #008000; font-weight: bold">if</span> rates[<span style="color: #BA2121">&#39;positive&#39;</span>] <span style="color: #666">&gt;=</span> <span style="color: #666">80</span>:
+        warnings<span style="color: #666">.</span>append(<span style="color: #BA2121">f&quot;긍정 편향 의심: 긍정 </span><span style="color: #A45A77; font-weight: bold">{</span>rates[<span style="color: #BA2121">&#39;positive&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">% (≥80%) → 샘플 검증 필요&quot;</span>)
+    <span style="color: #008000; font-weight: bold">if</span> rates[<span style="color: #BA2121">&#39;negative&#39;</span>] <span style="color: #666">&lt;</span> <span style="color: #666">10</span>:
+        warnings<span style="color: #666">.</span>append(<span style="color: #BA2121">f&quot;부정 누락 의심: 부정 </span><span style="color: #A45A77; font-weight: bold">{</span>rates[<span style="color: #BA2121">&#39;negative&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">% (&lt;10%)&quot;</span>)
+    <span style="color: #008000; font-weight: bold">return</span> {<span style="color: #BA2121">&#39;rates&#39;</span>: rates, <span style="color: #BA2121">&#39;warnings&#39;</span>: warnings}
+
+<span style="color: #3D7B7B; font-style: italic"># 중립이 40%로 과다한 예시</span>
+test <span style="color: #666">=</span> ([{<span style="color: #BA2121">&#39;sentiment&#39;</span>: <span style="color: #BA2121">&#39;positive&#39;</span>}] <span style="color: #666">*</span> <span style="color: #666">45</span> <span style="color: #666">+</span> [{<span style="color: #BA2121">&#39;sentiment&#39;</span>: <span style="color: #BA2121">&#39;negative&#39;</span>}] <span style="color: #666">*</span> <span style="color: #666">15</span>
+        <span style="color: #666">+</span> [{<span style="color: #BA2121">&#39;sentiment&#39;</span>: <span style="color: #BA2121">&#39;neutral&#39;</span>}] <span style="color: #666">*</span> <span style="color: #666">40</span>)
+res <span style="color: #666">=</span> check_llm_result_distribution(test)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;분포: 긍정 </span><span style="color: #A45A77; font-weight: bold">{</span>res[<span style="color: #BA2121">&#39;rates&#39;</span>][<span style="color: #BA2121">&#39;positive&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">% / 부정 </span><span style="color: #A45A77; font-weight: bold">{</span>res[<span style="color: #BA2121">&#39;rates&#39;</span>][<span style="color: #BA2121">&#39;negative&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">% / 중립 </span><span style="color: #A45A77; font-weight: bold">{</span>res[<span style="color: #BA2121">&#39;rates&#39;</span>][<span style="color: #BA2121">&#39;neutral&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">%&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> w <span style="color: #A2F; font-weight: bold">in</span> res[<span style="color: #BA2121">&#39;warnings&#39;</span>]:
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;  ⚠&quot;</span>, w)
+</code></pre></div>
+
+<p>편향을 <strong>완전히 제거</strong>하는 건 불가능합니다. 중요한 건 <strong>완화 전략</strong>과 <strong>투명한 명시</strong>입니다. 완화 전략 다섯 가지 — ① 다중 언어 수집, ② 시간대별 분리 분석(최근 3개월·1개월 따로), ③ 제외 데이터 감성 확인, ④ 샘플 검증을 긍정·부정·중립 골고루, ⑤ 한계점 명시. 그리고 보고서에는 데이터 범위·제외 조건·LLM 정확도·한계점을 적어 둡니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #00F">generate_limitation_section</span>(info):
+<span style="color: #BBB">    </span><span style="color: #BA2121; font-style: italic">&quot;&quot;&quot;보고서에 붙일 &#39;한계점&#39; 섹션을 자동 생성.&quot;&quot;&quot;</span>
+    lim <span style="color: #666">=</span> []
+    langs <span style="color: #666">=</span> info<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;languages&#39;</span>, [<span style="color: #BA2121">&#39;영어&#39;</span>])
+    <span style="color: #008000; font-weight: bold">if</span> <span style="color: #008000">len</span>(langs) <span style="color: #666">==</span> <span style="color: #666">1</span>:
+        lim<span style="color: #666">.</span>append(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>langs[<span style="color: #666">0</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> 리뷰만 분석하여 비</span><span style="color: #A45A77; font-weight: bold">{</span>langs[<span style="color: #666">0</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">권 유저 의견 반영 제한&quot;</span>)
+    lim<span style="color: #666">.</span>append(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>info<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;platform&#39;</span>,<span style="color: #BBB"> </span><span style="color: #BA2121">&#39;Steam&#39;</span>)<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> 리뷰만 분석하여 타 플랫폼(콘솔·모바일) 미포함&quot;</span>)
+    <span style="color: #008000; font-weight: bold">if</span> info<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;llm_accuracy&#39;</span>):
+        lim<span style="color: #666">.</span>append(<span style="color: #BA2121">f&quot;LLM 감성 분류 정확도 </span><span style="color: #A45A77; font-weight: bold">{</span>info[<span style="color: #BA2121">&#39;llm_accuracy&#39;</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">% (샘플 검증 기준)&quot;</span>)
+    <span style="color: #008000; font-weight: bold">if</span> info<span style="color: #666">.</span>get(<span style="color: #BA2121">&#39;date_range&#39;</span>):
+        lim<span style="color: #666">.</span>append(<span style="color: #BA2121">f&quot;분석 기간 </span><span style="color: #A45A77; font-weight: bold">{</span>info[<span style="color: #BA2121">&#39;date_range&#39;</span>][<span style="color: #666">0</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> ~ </span><span style="color: #A45A77; font-weight: bold">{</span>info[<span style="color: #BA2121">&#39;date_range&#39;</span>][<span style="color: #666">1</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">, 그 외 미반영&quot;</span>)
+    <span style="color: #008000; font-weight: bold">return</span> lim
+
+info <span style="color: #666">=</span> {<span style="color: #BA2121">&#39;languages&#39;</span>: [<span style="color: #BA2121">&#39;영어&#39;</span>], <span style="color: #BA2121">&#39;platform&#39;</span>: <span style="color: #BA2121">&#39;Steam&#39;</span>, <span style="color: #BA2121">&#39;llm_accuracy&#39;</span>: <span style="color: #666">78</span>,
+        <span style="color: #BA2121">&#39;date_range&#39;</span>: (<span style="color: #BA2121">&#39;2024-01-01&#39;</span>, <span style="color: #BA2121">&#39;2024-06-30&#39;</span>)}
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;=== 분석 보고서 - 한계점 ===&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> i, l <span style="color: #A2F; font-weight: bold">in</span> <span style="color: #008000">enumerate</span>(generate_limitation_section(info), <span style="color: #666">1</span>):
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;  </span><span style="color: #A45A77; font-weight: bold">{</span>i<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">. </span><span style="color: #A45A77; font-weight: bold">{</span>l<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+</code></pre></div>
+
+<p>이게 왜 좋을까요? 한계점을 투명하게 밝히면 신뢰가 <strong>떨어지는 게 아니라 오히려 올라갑니다.</strong> "영어 리뷰 5,000건(2024년 1–6월), 10자 미만 제외(전체의 8%), 샘플 검증 정확도 78%(n=100)"처럼 범위를 못 박으면, 보고받는 사람도 그 한계 안에서 결정을 내릴 수 있으니까요.</p>
+<p>마지막으로 실무 상황 둘. <strong>PM이 "영어 리뷰만 분석해 내일까지 보고해줘"</strong> → 권장 답은 <strong>"영어권 한정"임을 명시하고 보고</strong>(현실적 + 투명성). <strong>결과가 기대와 달리 긍정 40%로 나옴</strong> → 권장 답은 <strong>있는 그대로 보고하고 원인 분석을 제안</strong>(팩트 기반 + 추가 가치). 어렵지 않죠. 당연한 것을 원칙대로 행동하는 게 핵심입니다.</p>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>샘플링 편향</td>
+<td>수집 단계의 치우침(예: 영어 리뷰만)</td>
+</tr>
+<tr>
+<td>선택 편향</td>
+<td>전처리 단계의 치우침(예: 짧은 리뷰 제외로 부정 누락)</td>
+</tr>
+<tr>
+<td>모델 편향</td>
+<td>LLM 자체의 치우침(문화·중립·긍정·맥락무시)</td>
+</tr>
+<tr>
+<td>확증 편향</td>
+<td>원하는 결론에 맞는 데이터만 강조하는 해석 단계 치우침</td>
+</tr>
+<tr>
+<td>리뷰 폭탄</td>
+<td>게임 품질과 무관한 외부 이슈로 부정 리뷰가 쏟아지는 현상</td>
+</tr>
+<tr>
+<td>한계점 명시</td>
+<td>데이터 범위·제외 조건·정확도를 보고서에 투명하게 적기</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>이 강의 한 줄 — <strong>"편향 점검은 윤리가 아니라 리스크 관리"</strong> — 는 기획자에게 가장 와닿습니다. "한국 유저 만족도 높음"이라 보고했다가 영어 리뷰만 본 게 드러나면, 그 분석가의 모든 후속 보고가 의심받죠. 언어·시간·길이·플랫폼 편향은 그대로 <em>유저 세그먼트를 빠짐없이 보고 있는가</em>라는 질문입니다 — 무료/유료, 얼리액세스/일반, 코어/라이트 유저의 평가는 같은 게임이라도 갈리니까요. "전체 평균에 최근 급락이 묻힌다"는 시간 편향은 곧 라이브 운영의 <em>조기 경보를 놓치는 사고</em>입니다. 그리고 한계점을 먼저 밝히는 습관은, 회의에서 데이터로 논쟁할 때 "이 분석이 커버하는 범위"를 선제적으로 못 박아 신뢰를 얻는 무기가 됩니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>"AI가 판단했으니 객관적"이 아닙니다.</strong> AI는 학습 데이터의 편향을 그대로 반영합니다.</li>
+<li><strong>편향 점검은 도덕이 아니라 품질·리스크 관리입니다.</strong> 내 분석의 신뢰성을 지키는 일입니다.</li>
+<li><strong>"짧은 리뷰 제외" 같은 무해해 보이는 필터가 부정을 골라낼 수 있습니다.</strong> 반드시 필터 전후 분포를 비교하세요.</li>
+<li><strong>불편한 결과를 다시 분석하고 싶은 충동은 위험 신호입니다.</strong> 기대와 다른 결과일수록 더 깊이 파야 합니다.</li>
+<li><strong>편향을 완전히 없앨 순 없습니다.</strong> 대신 완화하고, 한계점을 투명하게 밝히는 게 정답입니다.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li>AI는 객관적이지 않습니다 — 데이터의 편향을 그대로 반영하고, <strong>체계적으로</strong> 틀립니다.</li>
+<li>편향은 <strong>수집→전처리→분석→해석</strong> 모든 단계에서 생깁니다. 점검은 <strong>윤리가 아니라 리스크 관리</strong>입니다.</li>
+<li><strong>체크리스트·완화 전략·한계점 명시</strong>로 관리합니다. 한계를 밝히면 신뢰가 오히려 올라갑니다.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>다음 30차시는 <strong>프로젝트 시간(영상 없이 직접 실습)</strong> — 지금까지 분석한 결과를 비즈니스에서 쓸 수 있는 <strong>인사이트로 도출하고 스토리텔링</strong>하는 작업을 직접 해봅니다("그래서 뭐?"에 답하는 단계). 이어 31차시 종합 점검을 거쳐, 이 해설 모음의 5강에서는 32차시 <strong>서비스 아키텍처 설계</strong>로 넘어갑니다 — 신뢰도·검증·트렌드·편향까지 다듬은 분석을, 이제 누구나 브라우저로 보는 웹 서비스 구조(프론트엔드·백엔드·데이터베이스)로 설계도부터 그려 봅니다.</p>
+</article>
+<div class="pager"><a class="prev" href="3강.html"><span class="lbl">← 이전</span><span class="ttl">3강 — 시계열 분석과 트렌드</span></a><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><a class="next" href="5강.html"><span class="lbl">다음 →</span><span class="ttl">5강 — 서비스 아키텍처 설계</span></a></div>
+</div>
+</body>
+</html>

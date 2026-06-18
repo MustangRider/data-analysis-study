@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5강 — 서비스 아키텍처 설계</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-04 · 5강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="5">5강 — 서비스 아키텍처 설계</h1>
+<blockquote>
+<p>5강 (32차시)</p>
+</blockquote>
+<h2 id="_1">🎯 학습 목표</h2>
+<ul>
+<li>콜랩 노트북과 웹 서비스가 <strong>목적이 다르다</strong>는 것을 설명할 수 있다</li>
+<li>웹 서비스의 <strong>3계층 구조</strong>(프론트엔드·백엔드·데이터베이스)를 이해한다</li>
+<li>버튼 클릭 한 번에 <strong>데이터가 어떻게 흐르는지</strong>(API 요청·응답) 따라갈 수 있다</li>
+<li>우리 기술 스택 <strong>Streamlit + FastAPI + SQLite</strong>를 왜 골랐는지 안다</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<h3 id="1">1. 분석은 끝났는데, 어떻게 보여줄까요?</h3>
+<p>지금까지 우리는 리뷰를 수집·전처리하고, LLM으로 감성 분석·키워드 추출·리포트까지 만들고, 품질 검증과 편향 점검도 했습니다. <strong>분석 기능 자체는 완성</strong>입니다. 그런데 남은 과제가 있습니다. 이 결과물을 <strong>다른 사람에게 어떻게 보여줄까요?</strong></p>
+<p>마케팅 팀장님이 "요즘 리뷰 반응 어때?" 하고 물을 때, 콜랩 링크를 보내며 "여기서 실행 버튼 누르세요"라고 할 순 없죠. 비개발자에게 콜랩은 외계어입니다. 화면을 캡처해 카톡으로 보낼 수도 있지만, 다음 주에 또 물으면 또 캡처해야 합니다. 엑셀로 정리해 메일을 보내면 분석보다 정리에 시간이 더 듭니다. <strong>세 방법 모두 비효율적</strong>입니다 — 서비스가 아니라 수작업이거든요.</p>
+<p>오늘은 코드를 한 줄도 짜지 않습니다. 대신 <strong>우리가 만든 분석 기능을 웹 서비스로 바꾸는 설계도</strong>를 그립니다. 건물을 짓기 전에 설계도를 먼저 그리는 것처럼요.</p>
+<h3 id="2-vs">2. 콜랩 노트북 vs 웹 서비스 — 목적이 다르다</h3>
+<table>
+<thead>
+<tr>
+<th>콜랩 노트북</th>
+<th>웹 서비스</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>매번 코드를 실행해야 함</td>
+<td>브라우저 열고 주소만 입력</td>
+</tr>
+<tr>
+<td>콜랩 계정이 있어야 함</td>
+<td>로그인 필요 없음</td>
+</tr>
+<tr>
+<td>결과 공유가 번거로움(캡처·파일)</td>
+<td>링크 하나로 공유 끝</td>
+</tr>
+<tr>
+<td>비개발자는 사용 불가</td>
+<td>누구나 버튼 클릭으로 사용</td>
+</tr>
+<tr>
+<td>실행할 때마다 시간 소요</td>
+<td>항상 최신 결과가 바로 표시</td>
+</tr>
+</tbody>
+</table>
+<p>핵심은 <strong>목적</strong>입니다. 콜랩 노트북은 우리가 분석 로직을 만들고 테스트하는 <strong>개발용</strong>, 웹 서비스는 다른 사람에게 결과를 보여주는 <strong>제공용</strong>입니다. <strong>요리사</strong>로 비유하면, 레시피를 개발할 때는 주방에서 이것저것 시도하지만, 손님에게 낼 때는 깔끔하게 플레이팅해서 서빙하죠. 주방의 뒤죽박죽을 그대로 보여주지 않습니다. 콜랩에서 코드 짜고 에러 고치는 건 개발 단계, 타 부서에 보여줄 땐 깔끔한 화면으로 결과만 — 그게 서비스입니다.</p>
+<h3 id="3">3. 웹 서비스 = 식당</h3>
+<p>웹 서비스 구조는 <strong>식당</strong>에 비유하면 바로 이해됩니다.</p>
+<table>
+<thead>
+<tr>
+<th>식당</th>
+<th>웹 서비스</th>
+<th>역할</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>손님</td>
+<td>사용자</td>
+<td>서비스를 이용하는 사람(팀장님, 동료)</td>
+</tr>
+<tr>
+<td>메뉴판</td>
+<td><strong>프론트엔드</strong></td>
+<td>사용자가 보고 버튼 누르고 결과 확인하는 화면</td>
+</tr>
+<tr>
+<td>주문서</td>
+<td>API 요청</td>
+<td>원하는 걸 주방에 전달하는 양식</td>
+</tr>
+<tr>
+<td>주방</td>
+<td><strong>백엔드(서버)</strong></td>
+<td>실제로 계산·분석·데이터 처리하는 곳</td>
+</tr>
+<tr>
+<td>냉장고</td>
+<td><strong>데이터베이스</strong></td>
+<td>리뷰·분석 결과 등 데이터를 보관하는 곳</td>
+</tr>
+</tbody>
+</table>
+<p>여기서 생각해 볼 거리 하나. 식당에서 <strong>주방장이 바뀌어 레시피가 좋아졌다면, 메뉴판도 바꿔야 할까요?</strong> 바꿀 필요 없습니다. 손님은 똑같은 된장찌개를 주문하니까요. 주방에서 어떻게 만드는지는 손님이 알 필요가 없습니다. 웹 서비스도 똑같습니다. <strong>백엔드(분석 로직)를 개선해도 프론트엔드(화면)는 그대로</strong>일 수 있습니다. 이게 <strong>역할 분리</strong>의 핵심 — 각 부분을 독립적으로 수정할 수 있다는 거죠.</p>
+<p>정식 용어로, 웹 서비스는 <strong>3계층(3-tier) 구조</strong>입니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>         👤 사용자
+            │  클릭·입력
+            ▼
+   🖥️ 프론트엔드 (화면)        ← 메뉴판
+            │  API 호출
+            ▼
+   ⚙️ 백엔드 (서버)            ← 주방
+            │  데이터 조회·저장
+            ▼
+   🗄️ 데이터베이스 (저장소)    ← 냉장고
+</code></pre></div>
+
+<p>세 계층이 독립적이라 좋은 점은 <strong>유지보수가 쉽다</strong>는 것입니다. "화면은 잘 나오는데 데이터가 이상해" → 백엔드나 DB 문제겠죠. 어디가 문제인지 찾기 쉽고, "넌 화면 만들어, 난 서버 만들게"처럼 <strong>팀 협업</strong>도 쉬워집니다.</p>
+<h3 id="4">4. 데이터 흐름 — 버튼을 누르면 무슨 일이?</h3>
+<p>사용자가 화면에서 "분석 결과 보기" 버튼을 누르면, 짧은 순간에 이런 왕복이 일어납니다.</p>
+<ol>
+<li>사용자가 프론트엔드(화면)에서 <strong>버튼 클릭</strong></li>
+<li>프론트엔드가 백엔드에 <strong>요청을 보냄</strong> ("통계 데이터 주세요") — 이게 <strong>API 요청</strong>(HTTP 방식)</li>
+<li>백엔드가 요청을 받음</li>
+<li>백엔드가 <strong>데이터베이스에서 데이터를 가져옴</strong></li>
+<li>백엔드가 데이터를 <strong>가공</strong>(계산·정리)</li>
+<li>백엔드가 프론트엔드에 <strong>응답을 보냄</strong>(JSON 형식)</li>
+<li>프론트엔드가 응답을 받아 <strong>화면에 표시</strong>(차트·테이블)</li>
+</ol>
+<p><strong>API</strong>란 쉽게 말해 <strong>주문서 양식</strong>입니다. 식당 주문서에 메뉴·수량·테이블 번호를 정해진 형식대로 써야 주방이 알아듣듯, API도 "어떤 주소로 어떻게 요청하면 무엇을 받는지" 규칙이 정해져 있습니다. 이 규칙만 알면 웹·모바일·다른 서버 어디서든 같은 방식으로 쓸 수 있어, <strong>한 번 만들면 여러 곳에서 재사용</strong>됩니다. 우리는 그동안 OpenRouter라는 <em>남이 만든</em> API를 써 왔는데, 이제 <em>우리가 직접</em> API를 만드는 단계로 갑니다. 만들 API는 네 개입니다.</p>
+<table>
+<thead>
+<tr>
+<th>메서드</th>
+<th>엔드포인트</th>
+<th>하는 일</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/stats</code></td>
+<td>통계 조회(총 리뷰 수, 긍·부정 비율)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/reviews</code></td>
+<td>리뷰 목록 조회(최근·필터링)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/trends</code></td>
+<td>트렌드 조회(월별·주별 변화)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/analyze</code></td>
+<td>새 리뷰 분석 요청(LLM 호출)</td>
+</tr>
+</tbody>
+</table>
+<p><code>GET</code>은 데이터를 <strong>가져오는</strong> 것, <code>POST</code>는 뭔가 <strong>작업을 시키는</strong> 것입니다.</p>
+<h3 id="5-python">5. 기술 스택 선정 — 전부 Python</h3>
+<p>이제 화면·서버·DB를 각각 무엇으로 만들지 정합니다. 우리의 기준은 분명합니다. <strong>데이터 분석가로서 결과를 빨리 보여주는 것</strong>이지, 웹 개발자가 되는 게 아닙니다.</p>
+<p><strong>화면: React vs Streamlit</strong></p>
+<table>
+<thead>
+<tr>
+<th>React (전통적)</th>
+<th>Streamlit (우리 선택)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HTML·CSS·JavaScript 필요</td>
+<td>Python만 알면 됨</td>
+</tr>
+<tr>
+<td>npm·빌드 시스템 이해 필요</td>
+<td><code>pip install streamlit</code> 끝</td>
+</tr>
+<tr>
+<td>컴포넌트·상태 관리 개념</td>
+<td><code>st.title()</code>, <code>st.bar_chart()</code> 호출</td>
+</tr>
+<tr>
+<td>학습에 몇 주~몇 달</td>
+<td>30분이면 첫 화면 완성</td>
+</tr>
+</tbody>
+</table>
+<p>React가 더 예쁘지만 새 언어 세계를 배워야 합니다. 우리 목적엔 <strong>Streamlit</strong>이 맞습니다. (강의 후반부엔 React로 직접 구현하는 시연도 따로 보여줄 예정이니 기대해도 좋습니다.)</p>
+<p><strong>서버: Flask vs FastAPI</strong></p>
+<table>
+<thead>
+<tr>
+<th>Flask (2010년)</th>
+<th>FastAPI (2018년, 우리 선택)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>오래되고 자료 풍부하나 다소 구식</td>
+<td>콜랩 코드를 거의 그대로 사용</td>
+</tr>
+<tr>
+<td>타입 힌트 없음</td>
+<td>타입 힌트로 에러 미리 방지</td>
+</tr>
+<tr>
+<td>API 문서 수동 작성</td>
+<td>API 문서 자동 생성(<code>/docs</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>이름처럼 <strong>FastAPI</strong>는 성능도 뛰어나(파이썬의 약점인 속도를 다른 언어 백엔드에 뒤지지 않게) 실무에서도 많이 씁니다.</p>
+<p><strong>데이터베이스: PostgreSQL vs SQLite</strong></p>
+<table>
+<thead>
+<tr>
+<th>PostgreSQL (대규모)</th>
+<th>SQLite (우리 선택)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>별도 설치·서버 관리 필요</td>
+<td>설치 불필요(Python 내장)</td>
+</tr>
+<tr>
+<td>대규모 트래픽용</td>
+<td>파일 1개(<code>reviews.db</code>)로 끝</td>
+</tr>
+<tr>
+<td>인스타그램·우버 등 운영 환경</td>
+<td>소규모·학습에 딱</td>
+</tr>
+</tbody>
+</table>
+<p>나중에 데이터가 수백만 건이 되면 PostgreSQL로 전환을 고려하지만(오라클·MySQL·MSSQL도 이런 대형 DB 부류입니다), 지금은 <strong>SQLite</strong>로 충분합니다. 최종 스택은 <strong>Streamlit + FastAPI + SQLite</strong> — 가장 중요한 건 <strong>전부 Python</strong>이라 새 언어를 배울 필요가 없다는 점입니다.</p>
+<h3 id="6-python">6. 맛보기 — 정말 Python만으로 되나?</h3>
+<p>설계가 끝났으니 각 도구를 아주 짧게 맛만 봅시다. (실행은 콜랩이 아니라 로컬 환경에서 하는 게 깔끔합니다.)</p>
+<p>먼저 <strong>Streamlit</strong> — 단 몇 줄로 대시보드 화면이 됩니다. 아래 코드는 <code>app.py</code> 파일을 만들고, 터미널에서 <code>streamlit run app.py</code>로 실행하면 브라우저가 열립니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># Streamlit 대시보드 예시 (app.py로 저장됨)</span>
+streamlit_code <span style="color: #666">=</span> <span style="color: #BA2121">&#39;&#39;&#39;</span>
+<span style="color: #BA2121">import streamlit as st</span>
+<span style="color: #BA2121">import pandas as pd</span>
+
+<span style="color: #BA2121">st.title(&quot;🎮 게임 리뷰 분석 대시보드&quot;)                       # 페이지 제목</span>
+<span style="color: #BA2121">sentiment = st.sidebar.selectbox(&quot;감성 선택&quot;, [&quot;전체&quot;, &quot;긍정&quot;, &quot;부정&quot;, &quot;중립&quot;])  # 사이드바 필터</span>
+
+<span style="color: #BA2121">data = {</span>
+<span style="color: #BA2121">    &quot;리뷰&quot;: [&quot;재밌어요!&quot;, &quot;별로예요&quot;, &quot;그냥 그래요&quot;, &quot;최고의 게임&quot;, &quot;버그가 많음&quot;],</span>
+<span style="color: #BA2121">    &quot;감성&quot;: [&quot;긍정&quot;, &quot;부정&quot;, &quot;중립&quot;, &quot;긍정&quot;, &quot;부정&quot;],</span>
+<span style="color: #BA2121">    &quot;신뢰도&quot;: [0.95, 0.88, 0.72, 0.91, 0.85],</span>
+<span style="color: #BA2121">}</span>
+<span style="color: #BA2121">df = pd.DataFrame(data)</span>
+
+<span style="color: #BA2121">st.subheader(&quot;📊 감성 분포&quot;)</span>
+<span style="color: #BA2121">st.bar_chart(df[&quot;감성&quot;].value_counts())                      # 막대 차트 한 줄</span>
+<span style="color: #BA2121">st.subheader(&quot;📋 리뷰 목록&quot;)</span>
+<span style="color: #BA2121">st.dataframe(df)                                             # 데이터 테이블 한 줄</span>
+<span style="color: #BA2121">&#39;&#39;&#39;</span>
+<span style="color: #008000; font-weight: bold">with</span> <span style="color: #008000">open</span>(<span style="color: #BA2121">&#39;app.py&#39;</span>, <span style="color: #BA2121">&#39;w&#39;</span>, encoding<span style="color: #666">=</span><span style="color: #BA2121">&#39;utf-8&#39;</span>) <span style="color: #008000; font-weight: bold">as</span> f:
+    f<span style="color: #666">.</span>write(streamlit_code)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;app.py 생성 완료 → 터미널에서 &#39;streamlit run app.py&#39; (기본 포트 8501)&quot;</span>)
+</code></pre></div>
+
+<p>다음 <strong>FastAPI</strong> — 함수에 <code>@app.get(...)</code> 한 줄(데커레이터)을 붙이면 API가 됩니다. <code>main.py</code>로 저장하고 <code>uvicorn main:app --reload</code>로 실행하면, <code>/docs</code>에서 <strong>API 문서가 자동 생성</strong>됩니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># FastAPI 서버 예시 (main.py로 저장됨)</span>
+api_code <span style="color: #666">=</span> <span style="color: #BA2121">&#39;&#39;&#39;</span>
+<span style="color: #BA2121">from fastapi import FastAPI</span>
+
+<span style="color: #BA2121">app = FastAPI(title=&quot;Steam 리뷰 분석 API&quot;, version=&quot;1.0.0&quot;)</span>
+
+<span style="color: #BA2121">@app.get(&quot;/&quot;)</span>
+<span style="color: #BA2121">def read_root():</span>
+<span style="color: #BA2121">    return {&quot;message&quot;: &quot;Steam 리뷰 분석 API에 오신 것을 환영합니다!&quot;}</span>
+
+<span style="color: #BA2121">@app.get(&quot;/api/stats&quot;)           # GET /api/stats → 통계 조회</span>
+<span style="color: #BA2121">def get_stats():</span>
+<span style="color: #BA2121">    return {&quot;total_reviews&quot;: 5000, &quot;positive&quot;: 3250,</span>
+<span style="color: #BA2121">            &quot;negative&quot;: 1250, &quot;neutral&quot;: 500, &quot;positive_rate&quot;: 0.65}</span>
+
+<span style="color: #BA2121">@app.get(&quot;/api/reviews&quot;)         # GET /api/reviews → 리뷰 목록</span>
+<span style="color: #BA2121">def get_reviews(sentiment: str = None, limit: int = 10):</span>
+<span style="color: #BA2121">    sample = [</span>
+<span style="color: #BA2121">        {&quot;id&quot;: 1, &quot;text&quot;: &quot;재밌어요!&quot;, &quot;sentiment&quot;: &quot;POSITIVE&quot;},</span>
+<span style="color: #BA2121">        {&quot;id&quot;: 2, &quot;text&quot;: &quot;별로예요&quot;, &quot;sentiment&quot;: &quot;NEGATIVE&quot;},</span>
+<span style="color: #BA2121">    ]</span>
+<span style="color: #BA2121">    return {&quot;reviews&quot;: sample[:limit]}</span>
+<span style="color: #BA2121">&#39;&#39;&#39;</span>
+<span style="color: #008000; font-weight: bold">with</span> <span style="color: #008000">open</span>(<span style="color: #BA2121">&#39;main.py&#39;</span>, <span style="color: #BA2121">&#39;w&#39;</span>, encoding<span style="color: #666">=</span><span style="color: #BA2121">&#39;utf-8&#39;</span>) <span style="color: #008000; font-weight: bold">as</span> f:
+    f<span style="color: #666">.</span>write(api_code)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;main.py 생성 완료 → 터미널에서 &#39;uvicorn main:app --reload&#39; (기본 포트 8000, 문서 /docs)&quot;</span>)
+</code></pre></div>
+
+<p>마지막 <strong>SQLite</strong> — 파일 하나로 동작하는 DB입니다. 아래 코드는 바로 실행돼 <code>reviews.db</code> 파일을 만들고 데이터를 넣고 조회합니다. 테이블은 곧 <strong>엑셀 시트</strong> — 열(column)은 엑셀의 열, 행(row)은 각 리뷰 데이터라고 생각하면 됩니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">sqlite3</span>
+
+conn <span style="color: #666">=</span> sqlite3<span style="color: #666">.</span>connect(<span style="color: #BA2121">&#39;reviews.db&#39;</span>)        <span style="color: #3D7B7B; font-style: italic"># 파일이 없으면 자동 생성</span>
+cursor <span style="color: #666">=</span> conn<span style="color: #666">.</span>cursor()
+
+<span style="color: #3D7B7B; font-style: italic"># 테이블 생성 (한 번만)</span>
+cursor<span style="color: #666">.</span>execute(<span style="color: #BA2121">&#39;&#39;&#39;</span>
+<span style="color: #BA2121">    CREATE TABLE IF NOT EXISTS reviews (</span>
+<span style="color: #BA2121">        id INTEGER PRIMARY KEY AUTOINCREMENT,</span>
+<span style="color: #BA2121">        text TEXT NOT NULL,</span>
+<span style="color: #BA2121">        sentiment TEXT,</span>
+<span style="color: #BA2121">        confidence REAL,</span>
+<span style="color: #BA2121">        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP</span>
+<span style="color: #BA2121">    )</span>
+<span style="color: #BA2121">&#39;&#39;&#39;</span>)
+
+<span style="color: #3D7B7B; font-style: italic"># 데이터 삽입</span>
+sample_data <span style="color: #666">=</span> [
+    (<span style="color: #BA2121">&quot;정말 재밌는 게임이에요!&quot;</span>, <span style="color: #BA2121">&quot;POSITIVE&quot;</span>, <span style="color: #666">0.95</span>),
+    (<span style="color: #BA2121">&quot;버그가 너무 많아요&quot;</span>, <span style="color: #BA2121">&quot;NEGATIVE&quot;</span>, <span style="color: #666">0.88</span>),
+    (<span style="color: #BA2121">&quot;그냥 그래요&quot;</span>, <span style="color: #BA2121">&quot;NEUTRAL&quot;</span>, <span style="color: #666">0.72</span>),
+]
+cursor<span style="color: #666">.</span>executemany(
+    <span style="color: #BA2121">&quot;INSERT INTO reviews (text, sentiment, confidence) VALUES (?, ?, ?)&quot;</span>, sample_data)
+conn<span style="color: #666">.</span>commit()
+
+<span style="color: #3D7B7B; font-style: italic"># 감성별 통계 조회 (SQL로 집계)</span>
+cursor<span style="color: #666">.</span>execute(<span style="color: #BA2121">&quot;SELECT sentiment, COUNT(*) FROM reviews GROUP BY sentiment&quot;</span>)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;감성별 통계:&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> sentiment, count <span style="color: #A2F; font-weight: bold">in</span> cursor<span style="color: #666">.</span>fetchall():
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;  </span><span style="color: #A45A77; font-weight: bold">{</span>sentiment<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">: </span><span style="color: #A45A77; font-weight: bold">{</span>count<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">개&quot;</span>)
+
+conn<span style="color: #666">.</span>close()
+</code></pre></div>
+
+<p>세 도구 모두 보다시피 <strong>Python 문법 그대로</strong>입니다. 새 언어 없이, 지금까지의 실력으로 서비스를 만들 수 있다는 게 이 스택의 힘입니다.</p>
+<h3 id="7">7. 전체 그림 — 설계 먼저, 코딩 나중</h3>
+<p>전체를 한 장으로 정리하면 이렇습니다. 사용자가 브라우저로 <strong>Streamlit(포트 8501)</strong> 화면에 접속해 버튼을 누르면, Streamlit이 <strong>FastAPI(포트 8000)</strong>에 요청을 보냅니다. FastAPI는 <strong>SQLite(<code>reviews.db</code>)</strong>에서 데이터를 가져오고, 이미 분석된 결과가 있으면 바로 응답합니다. 새 리뷰를 분석해야 하면 FastAPI가 외부 <strong>OpenRouter(LLM) API</strong>를 호출해 감성 분석 결과를 받아 SQLite에 저장한 뒤 Streamlit에 응답하고, Streamlit이 차트·테이블로 화면에 표시합니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code>사용자 → Streamlit(:8501) → FastAPI(:8000) → SQLite(reviews.db)
+                                  │
+                                  └→ OpenRouter LLM API (새 리뷰 분석 시)
+</code></pre></div>
+
+<p>오늘 우리는 코드를 (맛보기 외엔) 짜지 않았습니다. 대신 <strong>전체 구조를 이해</strong>했죠. 건물을 설계도 없이 벽돌부터 쌓으면 나중에 "여기 창문 못 내네" 하며 허물게 됩니다. 서비스도 구조를 모르고 코드부터 짜면 다시 짜야 합니다. <strong>설계가 제대로 되면 코딩은 자연히 따라옵니다.</strong> 그러니 무엇을 만들고 싶은지 구상하는 데 많은 노력을 기울이세요.</p>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3계층(3-tier) 구조</td>
+<td>프론트엔드·백엔드·데이터베이스로 나눈 웹 서비스 구조</td>
+</tr>
+<tr>
+<td>프론트엔드</td>
+<td>사용자가 보는 화면(메뉴판). 우리는 Streamlit</td>
+</tr>
+<tr>
+<td>백엔드(서버)</td>
+<td>실제 처리하는 곳(주방). 우리는 FastAPI</td>
+</tr>
+<tr>
+<td>데이터베이스</td>
+<td>데이터 저장소(냉장고). 우리는 SQLite</td>
+</tr>
+<tr>
+<td>API</td>
+<td>"어떤 주소로 요청하면 뭘 받는지"의 규칙(주문서 양식)</td>
+</tr>
+<tr>
+<td>역할 분리</td>
+<td>각 계층을 독립적으로 수정 → 유지보수·협업이 쉬움</td>
+</tr>
+<tr>
+<td>GET / POST</td>
+<td>데이터를 가져오기 / 작업을 시키기</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>이 강의 핵심 — <strong>"콜랩은 개발용, 서비스는 제공용"</strong> — 은 기획자에게 곧 <em>분석을 조직의 의사결정 도구로 전환</em>하는 문제입니다. 아무리 좋은 리뷰 분석도 분석가 한 명의 노트북에 갇혀 있으면 가치가 제한되죠. 팀장·마케팅·CS가 <strong>링크 하나로</strong> 최신 감성 트렌드를 보는 순간, 분석은 일회성 보고서에서 상시 운영 지표로 바뀝니다. <strong>역할 분리</strong>(3계층) 개념도 기획에 그대로 옮겨집니다 — 분석 로직(백엔드)을 개선해도 사람들이 보는 대시보드(프론트엔드)는 그대로 두는 건, 라이브 게임에서 <em>내부 밸런싱 로직을 바꿔도 유저가 보는 UI는 유지하는</em> 것과 같은 사고입니다. 그리고 "설계 먼저"라는 메시지는 기획서의 본질 — <em>만들기 전에 무엇을·왜 만들지 못 박는다</em> — 와 정확히 일치합니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong>콜랩 링크를 공유하는 건 "서비스 제공"이 아닙니다.</strong> 비개발자는 실행조차 못 합니다.</li>
+<li><strong>3계층은 복잡하게 만들려는 게 아니라 역할을 나눠 유지보수를 쉽게 하려는 것입니다.</strong></li>
+<li><strong>Streamlit/FastAPI/SQLite는 "초보용 임시방편"이 아닙니다.</strong> FastAPI·SQLite는 실무에서도 널리 쓰입니다. 규모가 커지면 그때 갈아타면 됩니다.</li>
+<li><strong>설계 없이 코드부터 짜면 나중에 다시 짭니다.</strong> 오늘 코드가 거의 없는 건 일부러 그런 것 — 구조 이해가 먼저입니다.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li>콜랩 노트북(개발용)과 웹 서비스(제공용)는 <strong>목적이 다릅니다.</strong> 공유엔 콜랩 링크 대신 서비스를.</li>
+<li>웹 서비스는 <strong>3계층</strong> — 프론트엔드(화면)·백엔드(서버)·데이터베이스(저장소). 식당의 메뉴판·주방·냉장고.</li>
+<li>우리 스택은 <strong>Streamlit + FastAPI + SQLite</strong>, 전부 Python. <strong>설계 먼저, 코딩 나중</strong>입니다.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>이제 머릿속에 전체 아키텍처가 들어왔습니다. 다음 차시(33차시)에서는 본격적인 코딩에 앞서 <strong>저작권과 생성형 AI</strong> — LLM으로 만든 결과물을 마음대로 써도 되는지, API 키를 코드에 넣으면 안 되는 이유 같은 — 실무에서 꼭 알아야 할 법적·보안 주의사항을 짚고, 그다음부터 이 설계도대로 서비스를 하나씩 구현해 나갑니다.</p>
+</article>
+<div class="pager"><a class="prev" href="4강.html"><span class="lbl">← 이전</span><span class="ttl">4강 — AI 편향과 공정성</span></a><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><span class="spacer"></span></div>
+</div>
+</body>
+</html>

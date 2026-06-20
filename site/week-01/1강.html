@@ -59,6 +59,12 @@ p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
 a { color: var(--accent); }
 a:hover { color: var(--accent-bright); }
 strong { font-weight: 700; color: var(--ink); }
+mark.hl {
+  background: linear-gradient(transparent 12%, #FFE9A8 12% 88%, transparent 88%);
+  color: inherit; border-radius: 2px; padding: 0 1px;
+  box-shadow: 0 0 0 1px rgba(212,160,23,0.22);
+}
+mark.hl.hl-first { background: linear-gradient(transparent 12%, #FFD45E 12% 88%, transparent 88%); }
 ul, ol { padding-left: 1.4em; }
 li { margin: .3em 0; }
 blockquote {
@@ -130,6 +136,40 @@ hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
   border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
 }
 .lec-list .name { font-weight: 500; }
+
+/* 검색 (허브) */
+.searchbar { margin: 6px 0 30px; }
+.search-box { position: relative; }
+.search-box input {
+  width: 100%; box-sizing: border-box;
+  padding: 13px 16px 13px 44px;
+  font-family: 'Noto Sans KR', sans-serif; font-size: 15px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+}
+.search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.search-box input::placeholder { color: var(--ink-faint); }
+.search-icon {
+  position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+  color: var(--ink-faint); pointer-events: none;
+}
+.search-status {
+  margin-top: 9px; min-height: 16px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .02em;
+  color: var(--ink-mute);
+}
+.match-badge {
+  display: inline-block; margin-left: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 500;
+  color: var(--accent); background: var(--accent-bg);
+  border: 1px solid var(--accent-border); border-radius: 11px;
+  padding: 1px 8px; transform: translateY(-1px); white-space: nowrap;
+}
+.search-empty {
+  display: none; text-align: center; color: var(--ink-mute);
+  padding: 44px 0; font-size: 15px;
+}
 
 @media (max-width: 600px) {
   body { font-size: 16px; }
@@ -299,5 +339,53 @@ hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
 </article>
 <div class="pager"><span class="spacer"></span><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><a class="next" href="2강.html"><span class="lbl">다음 →</span><span class="ttl">2강 — AI는 텍스트를 어떻게 이해하는가 (임베딩)</span></a></div>
 </div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search).get('q');
+  if (!q) return;
+  var tokens = q.trim().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return;
+  // 정규식 메타문자 이스케이프 후 (단어1|단어2|...) 형태로 합친다
+  function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  var re = new RegExp('(' + tokens.map(esc).join('|') + ')', 'gi');
+
+  var root = document.querySelector('article.md');
+  if (!root) return;
+  var SKIP = { SCRIPT: 1, STYLE: 1, MARK: 1 };
+  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: function (node) {
+      if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+      if (node.parentNode && SKIP[node.parentNode.nodeName]) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  // 노드를 먼저 모은 뒤 교체(순회 중 DOM을 바꾸면 walker가 꼬인다)
+  var nodes = [], n;
+  while ((n = walker.nextNode())) nodes.push(n);
+
+  var first = null;
+  nodes.forEach(function (node) {
+    var text = node.nodeValue;
+    re.lastIndex = 0;
+    if (!re.test(text)) return;
+    re.lastIndex = 0;
+    var frag = document.createDocumentFragment(), last = 0, m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+      var mk = document.createElement('mark');
+      mk.className = 'hl';
+      mk.textContent = m[0];
+      if (!first) { first = mk; mk.className = 'hl hl-first'; }
+      frag.appendChild(mk);
+      last = m.index + m[0].length;
+      if (m.index === re.lastIndex) re.lastIndex++;  // 0길이 매칭 무한루프 방지
+    }
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  });
+
+  if (first) setTimeout(function () { first.scrollIntoView({ block: 'center' }); }, 60);
+})();
+</script>
 </body>
 </html>

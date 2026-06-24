@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4강 — 데이터베이스(DB) 기초</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ECEAE5;
+  --surface: #ffffff;
+  --surface-soft: #FAF9F7;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #78716C;
+  --ink-faint: #A8A29E;
+  --line: #E5E2DC;
+  --line-soft: #EDEBE8;
+  --accent: #5B6AD0;
+  --accent-bright: #4554B8;
+  --accent-bg: rgba(91,106,208,0.08);
+  --accent-border: rgba(91,106,208,0.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans KR', -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  line-height: 1.8;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(236,234,229,0.85); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 13px 20px; margin-bottom: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: .02em;
+}
+.topbar a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.topbar a:hover { color: var(--accent-bright); }
+.topbar .crumb { color: var(--ink-faint); text-transform: uppercase; }
+article.md {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 44px 48px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+article.md > *:first-child { margin-top: 0; }
+h1, h2, h3 { line-height: 1.4; font-weight: 700; color: var(--ink); }
+h1 { font-size: 1.8em; margin: 0 0 .7em; padding-bottom: .4em; border-bottom: 2px solid var(--line); }
+h2 { font-size: 1.32em; margin: 1.9em 0 .7em; padding-bottom: .3em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.12em; margin: 1.6em 0 .5em; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1.1em; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-bright); }
+strong { font-weight: 700; color: var(--ink); }
+mark.hl {
+  background: linear-gradient(transparent 12%, #FFE9A8 12% 88%, transparent 88%);
+  color: inherit; border-radius: 2px; padding: 0 1px;
+  box-shadow: 0 0 0 1px rgba(212,160,23,0.22);
+}
+mark.hl.hl-first { background: linear-gradient(transparent 12%, #FFD45E 12% 88%, transparent 88%); }
+ul, ol { padding-left: 1.4em; }
+li { margin: .3em 0; }
+blockquote {
+  margin-left: 0; padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+blockquote > *:last-child { margin-bottom: 0; }
+code {
+  background: #EFEDE9; color: #44403C; padding: .12em .42em; border-radius: 5px;
+  font-family: 'JetBrains Mono', "D2Coding", Consolas, monospace; font-size: .85em;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; overflow: auto;
+}
+pre code { background: none; color: #44403C; padding: 0; font-size: .85em; }
+table { border-collapse: collapse; width: 100%; font-size: .94em; }
+th, td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; vertical-align: top; }
+th { background: var(--accent-bg); color: var(--accent-bright); font-weight: 700; }
+tr:nth-child(even) td { background: var(--surface-soft); }
+hr { border: none; border-top: 1px solid var(--line); margin: 2em 0; }
+.pager { display: flex; gap: 12px; margin-top: 30px; }
+.pager a {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px;
+  background: var(--surface); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.pager a:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: var(--accent-border); }
+.pager a.prev, .pager a.next { flex: 1; }
+.pager a.next { text-align: right; }
+.pager a.home { flex: 0 0 auto; text-align: center; background: var(--accent); border-color: var(--accent); }
+.pager a.home:hover { background: var(--accent-bright); }
+.pager a.home .lbl { color: rgba(255,255,255,0.75); }
+.pager a.home .ttl { color: #fff; }
+.pager .spacer { flex: 1; }
+.pager .lbl { display: block; font-size: 11px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+.pager .ttl { font-weight: 600; color: var(--accent); }
+
+/* index 허브 */
+.hero { padding: 36px 0 12px; }
+.hero h1 { border: none; font-size: 2em; margin-bottom: .25em; color: var(--ink); }
+.hero p { color: var(--ink-mute); margin-top: 0; font-family: 'JetBrains Mono', monospace; font-size: .88em; letter-spacing: .02em; }
+.weekcard {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+}
+.weekcard h2 {
+  border: none; margin: 0 0 .6em; font-size: 1.05em;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-soft);
+}
+.lec-list { list-style: none; padding: 0; margin: 0; }
+.lec-list li { margin: 0; border-top: 1px solid var(--line-soft); }
+.lec-list li:first-child { border-top: none; }
+.lec-list a {
+  display: flex; gap: 13px; align-items: baseline;
+  padding: 12px 6px; text-decoration: none; color: var(--ink); border-radius: 8px;
+  transition: background .12s;
+}
+.lec-list a:hover { background: var(--surface-soft); }
+.lec-list .badge {
+  flex: none; min-width: 2.6em; text-align: center;
+  background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 3px 8px; transform: translateY(-1px);
+}
+.lec-list .name { font-weight: 500; }
+
+/* 검색 (허브) */
+.searchbar { margin: 6px 0 30px; }
+.search-box { position: relative; }
+.search-box input {
+  width: 100%; box-sizing: border-box;
+  padding: 13px 16px 13px 44px;
+  font-family: 'Noto Sans KR', sans-serif; font-size: 15px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+}
+.search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.search-box input::placeholder { color: var(--ink-faint); }
+.search-icon {
+  position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+  color: var(--ink-faint); pointer-events: none;
+}
+.search-status {
+  margin-top: 9px; min-height: 16px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .02em;
+  color: var(--ink-mute);
+}
+.match-badge {
+  display: inline-block; margin-left: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 500;
+  color: var(--accent); background: var(--accent-bg);
+  border: 1px solid var(--accent-border); border-radius: 11px;
+  padding: 1px 8px; transform: translateY(-1px); white-space: nowrap;
+}
+.search-empty {
+  display: none; text-align: center; color: var(--ink-mute);
+  padding: 44px 0; font-size: 15px;
+}
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  article.md { padding: 26px 20px; border-radius: 10px; }
+}
+
+/* 인쇄(PDF 저장) */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .wrap { max-width: none; padding: 0; }
+  .topbar, .pager { display: none !important; }
+  article.md { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre, tr, img { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="../../Study.html">← 전체 해설 목록</a> <span class="crumb">&nbsp;·&nbsp; week-05 · 4강</span></div>
+<div class="wrap">
+<article class="md">
+<h1 id="4-db">4강 — 데이터베이스(DB) 기초</h1>
+<h2 id="_1">🎯 학습 목표</h2>
+<ul>
+<li>변수·CSV 파일에 데이터를 담을 때의 한계를 설명하고, 왜 데이터베이스가 필요한지 이해할 수 있다</li>
+<li>관계형 DB와 NoSQL의 차이를 알고, SQL이 왜 한 번 배우면 평생 쓰는 기술인지 설명할 수 있다</li>
+<li>SQLite의 특징(파일 하나=DB, 설치 불필요, 파이썬 기본 내장)을 이해하고 테이블·컬럼·로우·스키마·기본키·외래키 개념을 설명할 수 있다</li>
+<li>파이썬 <code>sqlite3</code>로 DB에 연결하고 CRUD(조회·추가·수정·삭제)를 직접 수행할 수 있다</li>
+</ul>
+<h2 id="_2">📖 해설</h2>
+<h3 id="1">1. 우리가 만든 데이터, 어디에 저장하고 있었나요?</h3>
+<p>지난 시간(35차시)에 우리는 리뷰 분석 대시보드 앱을 설계했습니다. 버튼을 누르면 리뷰를 분석하고 결과를 차트로 보여주는 앱이었죠. 기술 스택도 정했습니다. <strong>SQLite + FastAPI + Streamlit</strong>, 그리고 데이터 흐름은 "리뷰 수집 → DB 저장 → 분석 → 시각화" 순서였습니다. 오늘은 이 흐름 중에서 <strong>'DB 저장'</strong> 부분을 배웁니다.</p>
+<p>먼저 질문 하나 드리겠습니다. <strong>지금까지 우리는 데이터를 어디에 저장했나요?</strong> Colab에서 <code>df</code> 같은 변수를 만들어서 데이터프레임 형태로 담았습니다. 그런데 여기엔 큰 문제가 있었습니다. <strong>세션이 끊기면 다 사라진다</strong>는 점입니다. Colab은 보통 90분이 세션 시간인데, 이 시간이 지나면 우리가 저장해 둔 변수들이 전부 날아갑니다. 그러면 처음부터 코드를 다시 실행해야 하죠.</p>
+<p>학습할 때는 그럭저럭 견딜 수 있습니다. 그런데 <strong>앱에서는 이러면 안 됩니다.</strong> 사용자가 오늘 저장한 리뷰가 다음 날 사라지면 어떻게 될까요? 그건 앱이라고 부를 수도 없습니다. 그래서 앱에서는 데이터를 데이터베이스에 <strong>영구적으로, 그리고 체계적으로</strong> 저장합니다.</p>
+<h3 id="2">2. 변수·파일 저장의 네 가지 한계</h3>
+<p>"그럼 CSV 파일로 저장하면 되지 않나요?"라고 생각할 수 있습니다. 하지만 변수든 CSV 파일이든, 앱에서 쓰기에는 네 가지 한계가 있습니다.</p>
+<ol>
+<li><strong>휘발성 (변수)</strong> — 변수는 프로그램이 종료되면 사라집니다. 메모리에만 있기 때문입니다.</li>
+<li><strong>검색이 어려움 (CSV)</strong> — CSV는 파일로 저장은 됩니다. 하지만 "긍정 리뷰만 찾아줘"를 하려면 <strong>파일 전체를 처음부터 끝까지 다 읽어야</strong> 합니다. CSV는 기록(저장)에 특화된 형태라, 데이터가 많아지면 검색이 점점 느려집니다.</li>
+<li><strong>수정이 복잡함</strong> — CSV에서 딱 한 줄만 바꾸고 싶어도, 파일 전체를 읽어 들이고 수정한 뒤 다시 통째로 저장해야 합니다.</li>
+<li><strong>동시 접근 불가</strong> — 두 사용자가 동시에 같은 파일을 수정하면 내용이 꼬여 버립니다.</li>
+</ol>
+<p>이 네 가지 한계를 한 번에 해결해 주는 것이 바로 <strong>데이터베이스</strong>입니다.</p>
+<h3 id="3">3. 데이터베이스란 무엇인가</h3>
+<p>데이터베이스는 <strong>데이터를 체계적으로 저장하고 관리하는 시스템</strong>입니다. 위에서 본 네 가지 한계를 정확히 거꾸로 뒤집어 보면, 데이터베이스가 무엇을 해 주는지 한눈에 보입니다.</p>
+<table>
+<thead>
+<tr>
+<th>변수·파일의 한계</th>
+<th>데이터베이스의 해결</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>휘발성 (종료되면 사라짐)</td>
+<td><strong>영구 저장</strong> — 프로그램을 종료해도, 컴퓨터를 껐다 켜도 데이터가 유지됩니다</td>
+</tr>
+<tr>
+<td>검색이 느림</td>
+<td><strong>빠른 검색</strong> — "긍정 리뷰만 보여줘" 하면 조건에 맞는 것만 빠르게 찾아 줍니다</td>
+</tr>
+<tr>
+<td>수정이 복잡함</td>
+<td><strong>효율적 수정</strong> — 바꾸고 싶은 한 줄만 정확히 바꿉니다. 전체를 다시 쓸 필요가 없습니다</td>
+</tr>
+<tr>
+<td>동시 접근 불가</td>
+<td><strong>동시 접근</strong> — 여러 사용자·프로그램이 동시에 써도 문제없습니다</td>
+</tr>
+</tbody>
+</table>
+<p>비유하자면 <strong>도서관</strong>과 같습니다. 도서관은 책이 분야별로 체계적으로 분류되어 있고, 검색 시스템으로 원하는 책을 빠르게 찾을 수 있죠. 데이터베이스가 데이터에 대해 바로 그런 역할을 합니다.</p>
+<h3 id="4-db-vs-nosql">4. DB의 두 종류: 관계형 vs NoSQL</h3>
+<p>데이터베이스에도 종류가 있습니다. MySQL, MongoDB, Oracle, PostgreSQL 같은 이름을 한 번쯤 들어 보셨을 겁니다. 이들은 크게 두 갈래로 나뉩니다.</p>
+<p><strong>관계형 데이터베이스 (RDBMS)</strong>
+- <strong>표(테이블) 형태</strong>로 데이터를 저장합니다. 엑셀 시트를 떠올리시면 됩니다.
+- 테이블끼리 <strong>관계로 연결</strong>할 수 있습니다. 예를 들어 '리뷰 테이블'과 '분석 결과 테이블'을 이어 붙일 수 있죠.
+- <strong>SQL</strong>이라는 공통 언어로 조작합니다.
+- 예: MySQL, PostgreSQL, <strong>SQLite</strong></p>
+<p><strong>NoSQL 데이터베이스</strong>
+- 여기서 'No'는 "SQL이 아니다(부정)"라는 뜻이 아니라 <strong>"Not Only SQL"</strong> — 기존 SQL 방식 외에 다른 무언가를 더 제공한다는 의미입니다.
+- 표가 아니라 <strong>문서(document)나 키-값(key-value)</strong> 같은 다양한 형태로 저장하는 경우가 많습니다.
+- 구조가 <strong>유연하고</strong>(스키마가 고정되어 있지 않음), 제품마다 <strong>고유한 문법</strong>을 씁니다.
+- 예: MongoDB, Redis, Firebase</p>
+<p>우리는 이 중 <strong>관계형 DB인 SQLite</strong>를 배웁니다. 왜냐하면 리뷰 데이터가 "ID, 내용, 작성자, 감성…" 처럼 칸이 정해진 <strong>표 형태에 딱 맞기 때문</strong>입니다.</p>
+<h3 id="5-sql">5. SQL은 데이터베이스의 공용어</h3>
+<p>관계형 DB를 다루려면 <strong>SQL(Structured Query Language, 구조화된 질의 언어)</strong>을 알아야 합니다. 어렵게 생각할 것 없습니다. SQL은 한마디로 <strong>데이터베이스와 대화하는 언어</strong>입니다. "긍정 리뷰만 보여줘"를 SQL로 요청하면, 데이터베이스가 알아서 찾아 줍니다.</p>
+<p>SQL의 가장 큰 장점은 <strong>표준화된 문법</strong>이라는 점입니다. MySQL에서 배운 SQL을 PostgreSQL에서도, SQLite에서도 거의 그대로 쓸 수 있습니다. (제품마다 세부 문법이 조금씩 다를 수는 있지만, 기본 골격은 표준을 따릅니다.) 그래서 <strong>SQL 하나만 제대로 배워 두면 어떤 관계형 DB든 다룰 수 있습니다.</strong></p>
+<p>게다가 SQL은 <strong>영어 문장처럼 읽힙니다.</strong> 아래 문장을 한번 소리 내어 읽어 보세요.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">SELECT</span><span style="color: #BBB"> </span><span style="color: #666">*</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">FROM</span><span style="color: #BBB"> </span>reviews<span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">WHERE</span><span style="color: #BBB"> </span>sentiment<span style="color: #BBB"> </span><span style="color: #666">=</span><span style="color: #BBB"> </span><span style="color: #BA2121">&#39;긍정&#39;</span>;
+</code></pre></div>
+
+<p>"reviews(테이블)에서 / sentiment(감성)가 '긍정'인 것을 / 전부(<code>*</code>) 선택해라" — 무슨 뜻인지 느낌이 오시죠? 이게 SQL의 매력입니다. 영어가 국제 공용어이듯, <strong>SQL은 데이터베이스의 공용어</strong>입니다. 한 번 배워 두면 개발하는 내내 평생 쓰게 되는, 정말 중요한 기술입니다.</p>
+<h3 id="6-sqlite">6. 왜 SQLite를 쓸까</h3>
+<p>관계형 DB 중에서도 우리는 <strong>SQLite</strong>를 씁니다. SQLite는 <strong>파일 기반의 가볍고 작은 관계형 데이터베이스</strong>입니다. 입문자에게, 그리고 우리 앱 규모에 딱 맞는 네 가지 이유가 있습니다.</p>
+<ol>
+<li><strong>파일 하나가 곧 데이터베이스</strong> — <code>reviews.db</code> 파일 하나에 모든 데이터가 담깁니다. 복사하기도, 백업하기도 쉽습니다. (다른 컴퓨터로 옮기려면 그 파일 하나만 보내면 됩니다.)</li>
+<li><strong>서버 설치가 필요 없음</strong> — MySQL이나 PostgreSQL은 별도의 데이터베이스 서버를 설치하고 설정해야 합니다. SQLite는 그런 과정이 전혀 없습니다.</li>
+<li><strong>파이썬에 기본 내장</strong> — <code>import sqlite3</code> 한 줄이면 끝입니다. 따로 설치할 필요가 없습니다.</li>
+<li><strong>실제로 많이 씀</strong> — 스마트폰 앱, 웹 브라우저 같은 곳에서 SQLite를 아주 많이 사용합니다. 장난감이 아니라 실전에서 쓰는 도구입니다.</li>
+</ol>
+<p>물론 한계도 있습니다. 나중에 사용자가 수천 명, 수만 명으로 늘어나면 그때는 PostgreSQL 같은 서버형 DB로 전환을 고려하면 됩니다. 지금 우리 앱 규모에는 SQLite가 정확히 맞습니다.</p>
+<h3 id="7">7. 테이블 구조 이해하기</h3>
+<p>SQLite로 데이터를 담으려면 먼저 <strong>테이블</strong> 개념을 알아야 합니다. 테이블은 데이터를 담는 표입니다. 엑셀 시트와 거의 같다고 보면 됩니다. 우리는 리뷰를 저장하는 <code>reviews</code> 테이블, 분석 결과를 저장하는 <code>analysis_results</code> 테이블을 만들 예정입니다.</p>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>무엇인가</th>
+<th>예</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>테이블 (Table)</strong></td>
+<td>데이터를 담는 표. 엑셀 시트와 비슷</td>
+<td><code>reviews</code> 테이블</td>
+</tr>
+<tr>
+<td><strong>컬럼 (Column)</strong></td>
+<td>세로 줄. 데이터의 속성(항목)</td>
+<td>id, 리뷰 내용, 작성자, 감성</td>
+</tr>
+<tr>
+<td><strong>로우 (Row)</strong></td>
+<td>가로 줄. 실제 데이터 한 세트(한 건)</td>
+<td>리뷰 하나하나</td>
+</tr>
+<tr>
+<td><strong>스키마 (Schema)</strong></td>
+<td>테이블의 설계도. 어떤 컬럼이 있고 각 컬럼이 어떤 타입인지 정의</td>
+<td>"id는 정수, content는 문자열…"</td>
+</tr>
+</tbody>
+</table>
+<p>엑셀로 치면 맨 윗줄의 항목 이름이 <strong>컬럼</strong>, 그 아래 한 줄 한 줄이 <strong>로우</strong>, 그리고 "이 표에는 어떤 칸이 있어야 한다"는 설계도가 <strong>스키마</strong>입니다.</p>
+<h3 id="8">8. 데이터 타입: 칸마다 어떤 종류가 들어가는가</h3>
+<p>컬럼을 만들 때는 그 칸에 <strong>어떤 종류의 데이터가 들어갈지(데이터 타입)</strong>를 함께 지정합니다. SQLite의 데이터 타입은 단순합니다. 크게 네 가지만 알면 됩니다.</p>
+<table>
+<thead>
+<tr>
+<th>타입</th>
+<th>의미</th>
+<th>예</th>
+<th>어디에 쓰나</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>INTEGER</strong></td>
+<td>정수</td>
+<td>1, 2, 100, -5</td>
+<td>id, 플레이 시간</td>
+</tr>
+<tr>
+<td><strong>TEXT</strong></td>
+<td>문자열</td>
+<td>"재밌는 게임이에요", "긍정"</td>
+<td>리뷰 내용, 감성 라벨</td>
+</tr>
+<tr>
+<td><strong>REAL</strong></td>
+<td>소수점 숫자</td>
+<td>3.14, 98.5</td>
+<td>점수, 비율</td>
+</tr>
+<tr>
+<td><strong>BLOB</strong></td>
+<td>바이너리 데이터(이미지 등)</td>
+<td>(이미지 파일 등)</td>
+<td>우리는 거의 안 씀</td>
+</tr>
+</tbody>
+</table>
+<p>SQLite의 타입이 이렇게 단순한 게 오히려 장점입니다. 복잡한 데이터는 그냥 <strong>TEXT로 저장</strong>하면 됩니다. 예를 들어 JSON 같은 구조화된 데이터도 문자열(TEXT)로 저장해 두고, 꺼낼 때 다시 파싱하면 됩니다.</p>
+<h3 id="9-primary-key">9. 기본키(PRIMARY KEY): 각 행을 식별하는 고유 번호</h3>
+<p>테이블 설계에서 가장 중요한 개념이 <strong>기본키(PRIMARY KEY)</strong>입니다. 기본키는 <strong>각 로우(행)를 유일하게 구분하는 고유한 값</strong>입니다.</p>
+<p>비유하자면 <strong>주민등록번호</strong>입니다. 모든 사람의 주민등록번호는 서로 다르죠. 그래서 주민등록번호 하나로 특정 사람을 콕 집어낼 수 있습니다. 학번도 마찬가지입니다. 같은 학번을 가진 학생은 없으니까요. 우리 테이블에서는 <strong><code>id</code>를 기본키로</strong> 씁니다. 리뷰마다 고유한 번호가 붙는 거죠.</p>
+<p>여기에 <strong>AUTOINCREMENT</strong>를 붙이면, 번호가 <strong>자동으로 1, 2, 3… 하고 증가</strong>하며 부여됩니다. 우리가 직접 번호를 매기지 않아도 됩니다. 새 리뷰를 넣을 때마다 DB가 알아서 다음 번호를 붙여 줍니다.</p>
+<p>기억할 원칙 하나. <strong>모든 테이블에는 기본키가 있어야 합니다.</strong> 그래야 특정 데이터를 정확하고 빠르게 찾을 수 있습니다.</p>
+<h3 id="10-foreign-key">10. 외래키(FOREIGN KEY): 테이블끼리 연결하기</h3>
+<p><strong>외래키(FOREIGN KEY)</strong>는 <strong>다른 테이블의 기본키를 참조해서 두 테이블을 연결하는</strong> 방법입니다. 예를 들어 보겠습니다.</p>
+<ul>
+<li><code>reviews</code> 테이블에는 리뷰 원본이 저장되어 있고, <code>id</code>가 기본키입니다.</li>
+<li><code>analysis_results</code> 테이블에는 분석 결과가 저장되어 있습니다.</li>
+</ul>
+<p>이때 "이 분석 결과가 <strong>어떤 리뷰</strong>의 것인지" 알아야 합니다. 그래서 <code>analysis_results</code> 테이블에 <code>review_id</code>라는 컬럼을 두고, 이것이 <code>reviews</code> 테이블의 <code>id</code>를 가리키게(참조하게) 합니다. 이 <code>review_id</code>가 바로 <strong>외래키</strong>입니다. <code>review_id</code>가 1이면 "이건 <code>reviews</code> 테이블에서 <code>id</code>가 1인 리뷰의 분석 결과다"라는 뜻이 됩니다.</p>
+<p>이렇게 테이블을 연결해 두면 <strong>관련 데이터를 함께 조회</strong>할 수 있습니다. 마치 <strong>레고 블록</strong>처럼, '리뷰 블록'과 '분석 결과 블록'을 끼워 맞춰 원하는 데이터를 조립하는 셈이죠.</p>
+<p>외래키는 처음 배울 때 다소 어렵게 느껴질 수 있는 개념입니다. 지금은 완벽히 이해하려 애쓰기보다, <strong>"외래키라는 게 있고, 이게 두 테이블을 이어 주는 역할을 한다"</strong> 정도만 확실히 잡고 가시면 됩니다. 다음 시간 프로젝트에서 직접 만들어 보면서 자연스럽게 익히게 됩니다.</p>
+<blockquote>
+<p>테이블 설계의 핵심 두 가지: <strong>기본키</strong>로 각 행을 식별하고(모든 테이블에 필수), <strong>외래키</strong>로 테이블끼리 연결한다. 잘 설계된 테이블은 중복이 없고, 찾기 쉽고, 수정도 쉽습니다.</p>
+</blockquote>
+<h3 id="11">11. (참고) 정규화 — 우리는 지금 하지 않습니다</h3>
+<p>한 가지 개념을 짚고 넘어가겠습니다. <strong>정규화(Normalization)</strong>는 <strong>데이터 중복을 줄이고 무결성(데이터가 서로 모순되지 않고 일관됨)을 높이기 위해 테이블을 체계적으로 나누는 기법</strong>입니다. 사용자가 수백만 명이고 데이터가 엄청나게 많은 대규모 시스템에서는, 데이터 일관성과 저장 효율을 위해 꼭 필요합니다.</p>
+<p><strong>다만 우리는 직접 정규화를 하지 않을 예정입니다.</strong> 우리 앱 규모(리뷰 수십~수백 개)에서는 오버 스펙이기 때문입니다. 지금 만드는 <strong>두 개의 테이블 구조(reviews + analysis_results)로 충분</strong>합니다. 정규화까지 하면 테이블이 복잡해지고 시간도 많이 걸려서, 앱의 요구 사항에 맞게 단순하게 가는 편이 낫습니다. "정규화라는 게 있고, 큰 시스템에서 쓰는 거구나" 정도로 알아 두시면 됩니다.</p>
+<h3 id="12-crud">12. 데이터베이스에서 할 수 있는 일: CRUD</h3>
+<p>데이터베이스는 저장만 하면 끝일까요? 아닙니다. 데이터베이스의 모든 작업은 <strong>네 가지 기본 동작</strong>으로 이루어집니다. 이 네 가지를 영어 머리글자로 묶어 <strong>CRUD</strong>라고 부릅니다. 이것만 알면 데이터베이스로 사실상 무엇이든 할 수 있습니다.</p>
+<table>
+<thead>
+<tr>
+<th>글자</th>
+<th>작업</th>
+<th>SQL 명령어</th>
+<th>우리 앱에서 언제</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>C</strong></td>
+<td>Create (추가)</td>
+<td><code>INSERT</code></td>
+<td>새 리뷰를 저장할 때</td>
+</tr>
+<tr>
+<td><strong>R</strong></td>
+<td>Read (조회)</td>
+<td><code>SELECT</code></td>
+<td>리뷰 목록을 볼 때 — <strong>가장 핵심</strong></td>
+</tr>
+<tr>
+<td><strong>U</strong></td>
+<td>Update (수정)</td>
+<td><code>UPDATE</code></td>
+<td>분석 결과를 고칠 때</td>
+</tr>
+<tr>
+<td><strong>D</strong></td>
+<td>Delete (삭제)</td>
+<td><code>DELETE</code></td>
+<td>오래된 리뷰를 지울 때</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13-select">13. SELECT — 조회 (가장 많이 쓰는 명령어)</h3>
+<p>CRUD 중에서도 단연 가장 많이 쓰는 것이 <strong>조회(SELECT)</strong>입니다. 세 가지 패턴만 보면 감이 옵니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic">-- ① 전체 조회: reviews 테이블의 모든 데이터를 가져온다 (*는 &#39;전부&#39;라는 뜻)</span>
+<span style="color: #008000; font-weight: bold">SELECT</span><span style="color: #BBB"> </span><span style="color: #666">*</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">FROM</span><span style="color: #BBB"> </span>reviews;
+
+<span style="color: #3D7B7B; font-style: italic">-- ② 특정 컬럼만: 내용(content)과 감성(sentiment)만 가져온다</span>
+<span style="color: #008000; font-weight: bold">SELECT</span><span style="color: #BBB"> </span>content,<span style="color: #BBB"> </span>sentiment<span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">FROM</span><span style="color: #BBB"> </span>reviews;
+
+<span style="color: #3D7B7B; font-style: italic">-- ③ 조건 추가(WHERE): 감성이 &#39;긍정&#39;인 것만 가져온다</span>
+<span style="color: #008000; font-weight: bold">SELECT</span><span style="color: #BBB"> </span><span style="color: #666">*</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">FROM</span><span style="color: #BBB"> </span>reviews<span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">WHERE</span><span style="color: #BBB"> </span>sentiment<span style="color: #BBB"> </span><span style="color: #666">=</span><span style="color: #BBB"> </span><span style="color: #BA2121">&#39;긍정&#39;</span>;
+</code></pre></div>
+
+<p><code>*</code>는 "모든 컬럼", 컬럼 이름을 직접 쓰면 "그 컬럼만", <code>WHERE</code>를 붙이면 "조건에 맞는 것만"입니다. 영어로 읽으면 그대로 뜻이 됩니다 — "reviews에서 전부 선택해."</p>
+<h3 id="14-insert-update-delete">14. INSERT / UPDATE / DELETE — 추가·수정·삭제</h3>
+<p>나머지 세 명령어도 함께 보겠습니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic">-- INSERT (추가): reviews 테이블에 새 리뷰를 넣는다</span>
+<span style="color: #3D7B7B; font-style: italic">-- 어떤 컬럼에 넣을지 적고, VALUES로 값을 지정한다</span>
+<span style="color: #008000; font-weight: bold">INSERT</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">INTO</span><span style="color: #BBB"> </span>reviews<span style="color: #BBB"> </span>(content,<span style="color: #BBB"> </span>sentiment)<span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">VALUES</span><span style="color: #BBB"> </span>(<span style="color: #BA2121">&#39;재밌는 게임!&#39;</span>,<span style="color: #BBB"> </span><span style="color: #BA2121">&#39;긍정&#39;</span>);
+
+<span style="color: #3D7B7B; font-style: italic">-- UPDATE (수정): 5번 리뷰의 감성을 &#39;부정&#39;으로 바꾼다</span>
+<span style="color: #3D7B7B; font-style: italic">-- SET으로 바꿀 값을, WHERE로 어떤 행을 바꿀지 지정한다</span>
+<span style="color: #008000; font-weight: bold">UPDATE</span><span style="color: #BBB"> </span>reviews<span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">SET</span><span style="color: #BBB"> </span>sentiment<span style="color: #BBB"> </span><span style="color: #666">=</span><span style="color: #BBB"> </span><span style="color: #BA2121">&#39;부정&#39;</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">WHERE</span><span style="color: #BBB"> </span>id<span style="color: #BBB"> </span><span style="color: #666">=</span><span style="color: #BBB"> </span><span style="color: #666">5</span>;
+
+<span style="color: #3D7B7B; font-style: italic">-- DELETE (삭제): 5번 리뷰를 지운다</span>
+<span style="color: #008000; font-weight: bold">DELETE</span><span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">FROM</span><span style="color: #BBB"> </span>reviews<span style="color: #BBB"> </span><span style="color: #008000; font-weight: bold">WHERE</span><span style="color: #BBB"> </span>id<span style="color: #BBB"> </span><span style="color: #666">=</span><span style="color: #BBB"> </span><span style="color: #666">5</span>;
+</code></pre></div>
+
+<p>여기서 <strong>반드시 기억해야 할 경고</strong>가 있습니다.</p>
+<blockquote>
+<p><strong>UPDATE와 DELETE에서 <code>WHERE</code>를 빼면 전체에 적용됩니다.</strong>
+<code>DELETE FROM reviews;</code> 라고만 쓰면 <strong>리뷰가 전부 사라집니다.</strong> <code>UPDATE reviews SET sentiment = '긍정';</code> 이라고만 쓰면 <strong>모든 리뷰가 긍정으로 바뀝니다.</strong> 실수로 데이터를 지우면 복구가 어렵습니다. 수정·삭제할 때는 항상 <code>WHERE</code> 조건이 있는지 한 번 더 확인하세요.</p>
+</blockquote>
+<h3 id="15-sqlite">15. 파이썬에서 SQLite 연결하기</h3>
+<p>SQL 명령어는 알았습니다. 그럼 이걸 파이썬에서 어떻게 실행할까요? 데이터베이스들은 각각 파이썬 모듈을 가지고 있어서, 그걸 import해서 씁니다. SQLite는 <code>sqlite3</code> 모듈을 쓰는데, <strong>파이썬에 기본 내장</strong>되어 있어 설치 없이 바로 쓸 수 있습니다.</p>
+<p>연결의 기본 흐름은 세 단계입니다. ① 모듈 불러오기 → ② DB 파일에 연결하기(없으면 자동 생성) → ③ 커서(cursor) 만들기. 여기서 <strong>커서</strong>는 SQL 명령어를 실제로 데이터베이스에 전달하고 실행하는 도구라고 생각하면 됩니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># sqlite3 모듈 불러오기 (파이썬 기본 내장, 설치 필요 없음)</span>
+<span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">sqlite3</span>
+
+<span style="color: #3D7B7B; font-style: italic"># DB 파일에 연결합니다. 파일이 없으면 자동으로 만들어 줍니다.</span>
+<span style="color: #3D7B7B; font-style: italic"># 우리는 &#39;reviews.db&#39;라는 이름으로 만들 예정입니다.</span>
+conn <span style="color: #666">=</span> sqlite3<span style="color: #666">.</span>connect(<span style="color: #BA2121">&#39;reviews.db&#39;</span>)
+
+<span style="color: #3D7B7B; font-style: italic"># 커서를 만듭니다. 커서를 통해 SQL 명령어를 실행합니다.</span>
+cursor <span style="color: #666">=</span> conn<span style="color: #666">.</span>cursor()
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;데이터베이스 연결 성공!&quot;</span>)
+</code></pre></div>
+
+<p>이 코드를 실행하면, 같은 폴더에 <code>reviews.db</code> 파일이 새로 생긴 것을 확인할 수 있습니다. 그 파일 하나가 곧 우리의 데이터베이스입니다.</p>
+<h3 id="16-create-table">16. 테이블 만들기 (CREATE TABLE)</h3>
+<p>이제 데이터를 담을 테이블을 만들어 봅니다. <code>CREATE TABLE</code> 명령어로 테이블의 구조(스키마)를 정의합니다. 컬럼 이름과 데이터 타입을 함께 적어 주면 됩니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 테이블 생성 (이미 있으면 에러가 나지 않도록 IF NOT EXISTS 사용)</span>
+cursor<span style="color: #666">.</span>execute(<span style="color: #BA2121">&#39;&#39;&#39;</span>
+<span style="color: #BA2121">    CREATE TABLE IF NOT EXISTS reviews (</span>
+<span style="color: #BA2121">        id INTEGER PRIMARY KEY AUTOINCREMENT,  -- 고유 번호, 자동으로 1씩 증가</span>
+<span style="color: #BA2121">        content TEXT NOT NULL,                 -- 리뷰 내용(문자열), 빈 값 금지</span>
+<span style="color: #BA2121">        sentiment TEXT                         -- 감성 라벨(긍정/부정/중립)</span>
+<span style="color: #BA2121">    )</span>
+<span style="color: #BA2121">&#39;&#39;&#39;</span>)
+
+<span style="color: #3D7B7B; font-style: italic"># 변경사항을 실제로 저장합니다. 이걸 안 하면 저장이 안 됩니다!</span>
+conn<span style="color: #666">.</span>commit()
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;reviews 테이블 생성 완료!&quot;</span>)
+</code></pre></div>
+
+<p>여기서 쓰인 SQL 키워드를 정리하면 이렇습니다.</p>
+<table>
+<thead>
+<tr>
+<th>키워드</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INTEGER</code> / <code>TEXT</code></td>
+<td>정수형 / 문자열형</td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY</code></td>
+<td>기본키 (각 행을 구분하는 고유 식별자)</td>
+</tr>
+<tr>
+<td><code>AUTOINCREMENT</code></td>
+<td>자동으로 1씩 증가하며 번호 부여</td>
+</tr>
+<tr>
+<td><code>NOT NULL</code></td>
+<td>빈 값을 허용하지 않음 (반드시 값이 있어야 함)</td>
+</tr>
+</tbody>
+</table>
+<p>그리고 절대 잊으면 안 되는 한 줄이 <strong><code>conn.commit()</code></strong>입니다. SQLite에서는 <code>execute()</code>로 명령을 보낸 뒤 <strong><code>commit()</code>을 해야 비로소 변경 사항이 데이터베이스 파일에 실제로 반영</strong>됩니다. 이걸 빼먹으면 분명히 코드를 돌렸는데 데이터가 저장되지 않는 황당한 일이 생깁니다. (조회만 하는 SELECT는 commit이 필요 없지만, INSERT·UPDATE·DELETE처럼 데이터를 바꾸는 작업은 반드시 commit해야 합니다.)</p>
+<h3 id="17-insert">17. 데이터 추가하기 (INSERT) — 그리고 <code>?</code>의 정체</h3>
+<p>이제 리뷰 데이터를 넣어 봅니다. 한 건씩 넣을 수도 있지만, 여러 건을 한꺼번에 넣을 때는 <code>executemany</code>가 편리합니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 추가할 리뷰 데이터 (내용, 감성) 묶음</span>
+reviews_data <span style="color: #666">=</span> [
+    (<span style="color: #BA2121">&quot;정말 재밌는 게임이에요! 강추!&quot;</span>, <span style="color: #BA2121">&quot;긍정&quot;</span>),
+    (<span style="color: #BA2121">&quot;버그가 너무 많아요. 실망입니다.&quot;</span>, <span style="color: #BA2121">&quot;부정&quot;</span>),
+    (<span style="color: #BA2121">&quot;그냥 그래요. 할만해요.&quot;</span>, <span style="color: #BA2121">&quot;중립&quot;</span>),
+    (<span style="color: #BA2121">&quot;최고의 게임! 100시간 플레이함&quot;</span>, <span style="color: #BA2121">&quot;긍정&quot;</span>),
+    (<span style="color: #BA2121">&quot;환불하고 싶어요.&quot;</span>, <span style="color: #BA2121">&quot;부정&quot;</span>),
+]
+
+<span style="color: #3D7B7B; font-style: italic"># executemany: 여러 건을 한 번에 추가</span>
+<span style="color: #3D7B7B; font-style: italic"># 물음표(?)는 &#39;값이 들어갈 자리&#39;이고, 실제 값은 뒤에서 채워 넣습니다.</span>
+cursor<span style="color: #666">.</span>executemany(
+    <span style="color: #BA2121">&#39;INSERT INTO reviews (content, sentiment) VALUES (?, ?)&#39;</span>,
+    reviews_data
+)
+
+conn<span style="color: #666">.</span>commit()  <span style="color: #3D7B7B; font-style: italic"># 추가했으니 반드시 저장</span>
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span><span style="color: #008000">len</span>(reviews_data)<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">개 리뷰 추가 완료!&quot;</span>)
+</code></pre></div>
+
+<p>여기서 <code>VALUES (?, ?)</code>의 <strong>물음표(<code>?</code>)</strong>가 중요합니다. 이건 "값이 들어갈 빈 자리"이고, 실제 값은 뒤에 따로 전달합니다. <strong>왜 굳이 이렇게 할까요?</strong> 만약 값을 문자열에 직접 끼워 넣으면 <strong>SQL 인젝션(SQL Injection)</strong>이라는 보안 공격에 취약해지기 때문입니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 나쁜 예 — 절대 이렇게 하면 안 됩니다 (SQL 인젝션에 취약)</span>
+content <span style="color: #666">=</span> <span style="color: #BA2121">&quot;리뷰 내용&quot;</span>
+cursor<span style="color: #666">.</span>execute(<span style="color: #BA2121">f&quot;INSERT INTO reviews (content) VALUES (&#39;</span><span style="color: #A45A77; font-weight: bold">{</span>content<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&#39;)&quot;</span>)
+
+<span style="color: #3D7B7B; font-style: italic"># 좋은 예 — ?를 쓰고 값을 따로 전달 (안전)</span>
+cursor<span style="color: #666">.</span>execute(<span style="color: #BA2121">&quot;INSERT INTO reviews (content) VALUES (?)&quot;</span>, (content,))
+</code></pre></div>
+
+<p>악의적인 사용자가 입력값에 SQL 명령어를 몰래 끼워 넣어 DB를 조작하거나 빼내는 게 SQL 인젝션입니다. <code>?</code>를 쓰면 입력값을 '데이터'로만 취급하기 때문에 이런 공격을 막을 수 있습니다. <strong>값을 넣을 때는 항상 <code>?</code>를 쓰는 습관</strong>을 들이세요. (참고: <code>?</code> 자리가 하나뿐일 때 <code>(content,)</code>처럼 쉼표를 붙이는 이유는, 파이썬에서 원소가 하나인 튜플을 만들려면 쉼표가 필요하기 때문입니다.)</p>
+<h3 id="18-select-fetchall">18. 데이터 조회하기 (SELECT) — fetchall로 결과 받기</h3>
+<p>조회는 다른 명령어와 다른 점이 하나 있습니다. INSERT·UPDATE·DELETE는 그냥 실행하면 끝이지만, <strong>SELECT는 요청한 결과를 돌려받아야</strong> 합니다. 그 결과를 가져오는 메서드가 <strong><code>fetchall()</code></strong>(전체 결과를 리스트로 가져옴)입니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 모든 리뷰 조회</span>
+cursor<span style="color: #666">.</span>execute(<span style="color: #BA2121">&#39;SELECT * FROM reviews&#39;</span>)
+rows <span style="color: #666">=</span> cursor<span style="color: #666">.</span>fetchall()   <span style="color: #3D7B7B; font-style: italic"># 결과 전체를 리스트로 받아옴</span>
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;=== 전체 리뷰 목록 ===&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> row <span style="color: #A2F; font-weight: bold">in</span> rows:
+    <span style="color: #3D7B7B; font-style: italic"># row는 (id, content, sentiment) 형태의 튜플 → 순서대로 인덱스로 꺼냅니다</span>
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;ID: </span><span style="color: #A45A77; font-weight: bold">{</span>row[<span style="color: #666">0</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> | 내용: </span><span style="color: #A45A77; font-weight: bold">{</span>row[<span style="color: #666">1</span>][:<span style="color: #666">20</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">... | 감성: </span><span style="color: #A45A77; font-weight: bold">{</span>row[<span style="color: #666">2</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+</code></pre></div>
+
+<p>조건을 거는 조회도 똑같습니다. SQL에 <code>WHERE</code>를 붙이고, 조건 값은 역시 <code>?</code>로 안전하게 전달합니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 조건부 조회: 긍정 리뷰만 보기</span>
+cursor<span style="color: #666">.</span>execute(<span style="color: #BA2121">&#39;SELECT * FROM reviews WHERE sentiment = ?&#39;</span>, (<span style="color: #BA2121">&#39;긍정&#39;</span>,))
+positive_reviews <span style="color: #666">=</span> cursor<span style="color: #666">.</span>fetchall()
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;=== 긍정 리뷰만 ===&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> row <span style="color: #A2F; font-weight: bold">in</span> positive_reviews:
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;ID: </span><span style="color: #A45A77; font-weight: bold">{</span>row[<span style="color: #666">0</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121"> | 내용: </span><span style="color: #A45A77; font-weight: bold">{</span>row[<span style="color: #666">1</span>]<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">&quot;</span>)
+</code></pre></div>
+
+<p>한 걸음 더 나아가, <strong>집계</strong>도 SQL로 바로 할 수 있습니다. <code>GROUP BY</code>로 묶고 <code>COUNT(*)</code>로 개수를 세면, 감성별 리뷰 수를 한 줄의 SQL로 구할 수 있습니다. (파이썬에서 직접 세는 것보다 훨씬 간결합니다.)</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 집계: 감성별 리뷰 수 세기 (GROUP BY로 묶고 COUNT로 셈)</span>
+cursor<span style="color: #666">.</span>execute(<span style="color: #BA2121">&#39;&#39;&#39;</span>
+<span style="color: #BA2121">    SELECT sentiment, COUNT(*) as count</span>
+<span style="color: #BA2121">    FROM reviews</span>
+<span style="color: #BA2121">    GROUP BY sentiment</span>
+<span style="color: #BA2121">&#39;&#39;&#39;</span>)
+stats <span style="color: #666">=</span> cursor<span style="color: #666">.</span>fetchall()
+
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;=== 감성별 리뷰 수 ===&quot;</span>)
+<span style="color: #008000; font-weight: bold">for</span> sentiment, count <span style="color: #A2F; font-weight: bold">in</span> stats:
+    <span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;</span><span style="color: #A45A77; font-weight: bold">{</span>sentiment<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">: </span><span style="color: #A45A77; font-weight: bold">{</span>count<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">개&quot;</span>)
+</code></pre></div>
+
+<table>
+<thead>
+<tr>
+<th>문법</th>
+<th>의미</th>
+<th>예</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SELECT *</code></td>
+<td>모든 컬럼</td>
+<td><code>SELECT * FROM reviews</code></td>
+</tr>
+<tr>
+<td><code>SELECT 컬럼명</code></td>
+<td>특정 컬럼만</td>
+<td><code>SELECT content FROM reviews</code></td>
+</tr>
+<tr>
+<td><code>WHERE 조건</code></td>
+<td>조건 필터</td>
+<td><code>WHERE sentiment = '긍정'</code></td>
+</tr>
+<tr>
+<td><code>GROUP BY</code></td>
+<td>그룹으로 묶기</td>
+<td><code>GROUP BY sentiment</code></td>
+</tr>
+<tr>
+<td><code>COUNT(*)</code></td>
+<td>개수 세기</td>
+<td><code>SELECT COUNT(*) FROM reviews</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="19-update-delete">19. 데이터 수정·삭제하기 (UPDATE / DELETE)</h3>
+<p>수정과 삭제도 패턴은 같습니다. SQL을 <code>execute</code>로 실행하고, 데이터를 바꿨으니 <code>commit()</code>으로 저장합니다. <strong>반드시 <code>WHERE</code>로 대상을 지정</strong>하는 것을 잊지 마세요.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 수정(UPDATE): 3번 리뷰의 감성을 &#39;긍정&#39;으로 바꾸기</span>
+cursor<span style="color: #666">.</span>execute(
+    <span style="color: #BA2121">&#39;UPDATE reviews SET sentiment = ? WHERE id = ?&#39;</span>,
+    (<span style="color: #BA2121">&#39;긍정&#39;</span>, <span style="color: #666">3</span>)   <span style="color: #3D7B7B; font-style: italic"># 값은 항상 ?로 안전하게 전달</span>
+)
+conn<span style="color: #666">.</span>commit()
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;3번 리뷰 감성 수정 완료!&quot;</span>)
+
+<span style="color: #3D7B7B; font-style: italic"># 수정 결과 확인 (한 건만 가져올 때는 fetchone)</span>
+cursor<span style="color: #666">.</span>execute(<span style="color: #BA2121">&#39;SELECT * FROM reviews WHERE id = 3&#39;</span>)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;수정 후:&quot;</span>, cursor<span style="color: #666">.</span>fetchone())   <span style="color: #3D7B7B; font-style: italic"># fetchone: 결과 한 줄만 가져옴</span>
+</code></pre></div>
+
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 삭제(DELETE): 5번 리뷰 지우기 — 삭제 전후 개수를 비교해 봅니다</span>
+cursor<span style="color: #666">.</span>execute(<span style="color: #BA2121">&#39;SELECT COUNT(*) FROM reviews&#39;</span>)
+before <span style="color: #666">=</span> cursor<span style="color: #666">.</span>fetchone()[<span style="color: #666">0</span>]
+<span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;삭제 전 리뷰 수: </span><span style="color: #A45A77; font-weight: bold">{</span>before<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">개&quot;</span>)
+
+cursor<span style="color: #666">.</span>execute(<span style="color: #BA2121">&#39;DELETE FROM reviews WHERE id = ?&#39;</span>, (<span style="color: #666">5</span>,))
+conn<span style="color: #666">.</span>commit()
+
+cursor<span style="color: #666">.</span>execute(<span style="color: #BA2121">&#39;SELECT COUNT(*) FROM reviews&#39;</span>)
+after <span style="color: #666">=</span> cursor<span style="color: #666">.</span>fetchone()[<span style="color: #666">0</span>]
+<span style="color: #008000">print</span>(<span style="color: #BA2121">f&quot;삭제 후 리뷰 수: </span><span style="color: #A45A77; font-weight: bold">{</span>after<span style="color: #A45A77; font-weight: bold">}</span><span style="color: #BA2121">개&quot;</span>)
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;5번 리뷰 삭제 완료!&quot;</span>)
+</code></pre></div>
+
+<blockquote>
+<p>다시 한번 강조합니다. <strong><code>WHERE</code> 없는 UPDATE/DELETE는 전체에 적용됩니다.</strong> 한 줄만 바꾸려다 전체 데이터를 날릴 수 있으니, 실행 전에 <code>WHERE</code>를 꼭 확인하세요.</p>
+</blockquote>
+<h3 id="20">20. 연결 종료, 그리고 전체 패턴</h3>
+<p>작업이 끝나면 연결을 닫아 줍니다. 자원을 정리하고 파일을 안전하게 마무리하는 단계입니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #3D7B7B; font-style: italic"># 연결 종료</span>
+conn<span style="color: #666">.</span>close()
+<span style="color: #008000">print</span>(<span style="color: #BA2121">&quot;데이터베이스 연결 종료!&quot;</span>)
+</code></pre></div>
+
+<p>지금까지 배운 것을 하나의 패턴으로 묶으면 이렇게 됩니다. 앞으로 모든 DB 작업이 이 흐름을 따릅니다.</p>
+<div class="codehilite" style="background: #f8f8f8"><pre style="line-height: 125%;"><span></span><code><span style="color: #008000; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #00F; font-weight: bold">sqlite3</span>
+
+<span style="color: #3D7B7B; font-style: italic"># 1. 연결 (없으면 파일 자동 생성)</span>
+conn <span style="color: #666">=</span> sqlite3<span style="color: #666">.</span>connect(<span style="color: #BA2121">&#39;database.db&#39;</span>)
+cursor <span style="color: #666">=</span> conn<span style="color: #666">.</span>cursor()
+
+<span style="color: #3D7B7B; font-style: italic"># 2. SQL 실행</span>
+cursor<span style="color: #666">.</span>execute(<span style="color: #BA2121">&#39;SQL 문장&#39;</span>)
+
+<span style="color: #3D7B7B; font-style: italic"># 3. 결과 가져오기 (SELECT일 때만) — fetchall(전체) / fetchone(한 건)</span>
+rows <span style="color: #666">=</span> cursor<span style="color: #666">.</span>fetchall()
+
+<span style="color: #3D7B7B; font-style: italic"># 4. 변경사항 저장 (INSERT/UPDATE/DELETE일 때 필수)</span>
+conn<span style="color: #666">.</span>commit()
+
+<span style="color: #3D7B7B; font-style: italic"># 5. 연결 종료</span>
+conn<span style="color: #666">.</span>close()
+</code></pre></div>
+
+<p>정리하면, CRUD 작업별로 무엇을 쓰는지는 다음 한 장이면 충분합니다.</p>
+<table>
+<thead>
+<tr>
+<th>작업</th>
+<th>SQL 명령어</th>
+<th>파이썬에서</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>C</strong>reate (추가)</td>
+<td><code>INSERT INTO</code></td>
+<td><code>cursor.execute()</code> + <code>conn.commit()</code></td>
+</tr>
+<tr>
+<td><strong>R</strong>ead (조회)</td>
+<td><code>SELECT</code></td>
+<td><code>cursor.execute()</code> + <code>cursor.fetchall()</code></td>
+</tr>
+<tr>
+<td><strong>U</strong>pdate (수정)</td>
+<td><code>UPDATE ... SET</code></td>
+<td><code>cursor.execute()</code> + <code>conn.commit()</code></td>
+</tr>
+<tr>
+<td><strong>D</strong>elete (삭제)</td>
+<td><code>DELETE FROM</code></td>
+<td><code>cursor.execute()</code> + <code>conn.commit()</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="_3">🔑 핵심 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>쉬운 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>데이터베이스(DB)</td>
+<td>데이터를 체계적으로 저장·관리하는 시스템. 영구 저장·빠른 검색·효율적 수정·동시 접근을 해결</td>
+</tr>
+<tr>
+<td>관계형 DB(RDBMS)</td>
+<td>표(테이블) 형태로 저장하고 SQL로 다루는 DB. MySQL·PostgreSQL·SQLite 등</td>
+</tr>
+<tr>
+<td>NoSQL</td>
+<td>"Not Only SQL". 문서·키값 등 유연한 형태로 저장하는 DB. MongoDB·Redis·Firebase 등</td>
+</tr>
+<tr>
+<td>SQL</td>
+<td>데이터베이스와 대화하는 표준 언어. 한 번 배우면 어떤 관계형 DB든 쓸 수 있음</td>
+</tr>
+<tr>
+<td>SQLite</td>
+<td>파일 하나가 곧 DB인 가벼운 관계형 DB. 서버 설치 불필요, 파이썬 기본 내장</td>
+</tr>
+<tr>
+<td>테이블 / 컬럼 / 로우</td>
+<td>데이터를 담는 표 / 세로 줄(속성) / 가로 줄(데이터 한 건)</td>
+</tr>
+<tr>
+<td>스키마(Schema)</td>
+<td>테이블의 설계도. 어떤 컬럼이 어떤 타입으로 있는지 정의</td>
+</tr>
+<tr>
+<td>데이터 타입</td>
+<td>INTEGER(정수)·TEXT(문자열)·REAL(소수)·BLOB(바이너리)</td>
+</tr>
+<tr>
+<td>기본키(PRIMARY KEY)</td>
+<td>각 행을 유일하게 구분하는 고유값. 보통 id. AUTOINCREMENT로 자동 증가</td>
+</tr>
+<tr>
+<td>외래키(FOREIGN KEY)</td>
+<td>다른 테이블의 기본키를 참조해 두 테이블을 연결하는 컬럼</td>
+</tr>
+<tr>
+<td>정규화</td>
+<td>중복을 줄이고 무결성을 높이려 테이블을 나누는 기법(대규모용, 우리는 생략)</td>
+</tr>
+<tr>
+<td>CRUD</td>
+<td>데이터베이스의 4대 작업: Create(INSERT)·Read(SELECT)·Update(UPDATE)·Delete(DELETE)</td>
+</tr>
+<tr>
+<td>커서(cursor)</td>
+<td>SQL 명령어를 DB에 전달·실행하는 도구</td>
+</tr>
+<tr>
+<td>commit()</td>
+<td>변경 사항을 DB 파일에 실제로 저장하는 명령. 빼먹으면 저장 안 됨</td>
+</tr>
+<tr>
+<td>SQL 인젝션</td>
+<td>입력값에 SQL을 몰래 끼워 넣는 보안 공격. <code>?</code> 사용으로 방어</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">🎮 게임 기획자 시점</h2>
+<p>지금까지 우리는 리뷰를 분석하고 결과를 손에 쥐었지만, 그건 전부 Colab 세션이 끝나면 사라지는 '일회용' 데이터였습니다. DB는 이 분석 결과를 <strong>자산으로 바꿔 줍니다.</strong> 수집한 리뷰와 감성·키워드·트렌드 분석 결과를 DB에 쌓아 두면, 패치 전후 감성 변화를 시기별로 비교하고, 특정 기간의 부정 리뷰만 골라 보고, 누적된 데이터로 대시보드를 그릴 수 있습니다. 이게 곧 운영 데이터 관리의 출발점입니다.</p>
+<p>특히 <strong>두 테이블(reviews / analysis_results)을 외래키로 연결</strong>하는 설계는 게임 운영에서 자주 보는 구조입니다. '원본 데이터'와 '그에 대한 가공·판정 결과'를 분리해 두면, 나중에 분석 기준이 바뀌어도 원본은 그대로 두고 결과만 다시 채울 수 있죠. 또 <code>WHERE</code>로 조건을 거는 SELECT는, 기획자가 "지난 업데이트 이후 부정 리뷰만", "플레이 시간 100시간 이상 유저의 리뷰만" 같은 질문을 데이터에 직접 던지는 도구가 됩니다. SQL 한 줄이 곧 운영 질문 하나인 셈입니다.</p>
+<h2 id="_5">⚠️ 흔한 오해 / 짚고 갈 점</h2>
+<ul>
+<li><strong><code>commit()</code>을 빼먹는 실수가 가장 흔합니다.</strong> 코드가 에러 없이 돌았는데 데이터가 안 보인다면 십중팔구 commit을 안 한 겁니다. INSERT·UPDATE·DELETE 뒤에는 반드시 <code>conn.commit()</code>.</li>
+<li><strong><code>WHERE</code> 없는 UPDATE/DELETE는 전체에 적용됩니다.</strong> <code>DELETE FROM reviews;</code>는 모든 리뷰를 지웁니다. 수정·삭제 전 <code>WHERE</code>를 꼭 확인하세요.</li>
+<li><strong>NoSQL의 'No'는 "SQL 반대"가 아니라 "Not Only SQL"입니다.</strong> SQL을 안 쓴다는 뜻이 아니라, SQL 외의 방식도 제공한다는 의미입니다.</li>
+<li><strong>값을 문자열에 직접 끼워 넣지 마세요.</strong> SQL 인젝션 위험이 있습니다. 항상 <code>?</code> 자리표시자를 쓰고 값은 따로 전달합니다.</li>
+<li><strong>명령어를 통째로 외울 필요는 없습니다.</strong> "이런 게 있구나" 정도로 익히고, 실제로는 검색이나 AI의 도움을 받아 그때그때 작성하면 됩니다. 쓰다 보면 자연스럽게 손에 익습니다.</li>
+<li><strong>SQLite가 작아서 장난감 같다고 오해하기 쉽습니다.</strong> 스마트폰 앱·브라우저에서 실제로 쓰는 검증된 DB입니다. 다만 사용자가 수천·수만으로 커지면 PostgreSQL 등으로 전환을 고려합니다.</li>
+</ul>
+<h2 id="30">✅ 30초 정리</h2>
+<ol>
+<li>변수는 휘발되고 CSV는 검색·수정·동시 접근이 어렵습니다. <strong>데이터베이스</strong>가 이 한계를 영구 저장·빠른 검색·효율적 수정·동시 접근으로 해결합니다.</li>
+<li>우리는 <strong>관계형 DB인 SQLite</strong>를 씁니다. 파일 하나가 곧 DB이고, 설치 없이 <code>import sqlite3</code>로 바로 쓰며, <strong>SQL</strong>은 한 번 배우면 어디든 통하는 표준 언어입니다.</li>
+<li>DB의 모든 작업은 <strong>CRUD</strong>(SELECT·INSERT·UPDATE·DELETE)이며, 파이썬에서는 연결→execute→(SELECT면 fetch)→<strong>commit</strong>→close 흐름으로 처리합니다. <strong>기본키</strong>로 행을 식별하고 <strong>외래키</strong>로 테이블을 연결합니다.</li>
+</ol>
+<h2 id="_6">▶️ 다음 강 연결</h2>
+<p>이번 시간엔 DB의 개념과 CRUD 사용법을 익혔습니다. 다음 5강 <strong>DB 구축 프로젝트</strong>에서는 오늘 배운 것을 직접 만들어 봅니다. 리뷰 원본을 담는 <code>reviews</code> 테이블과 분석 결과를 담는 <code>analysis_results</code> 테이블을 외래키로 연결해 설계·생성하고, 샘플 리뷰 데이터를 넣은 뒤 <code>WHERE</code>·<code>GROUP BY</code>로 다양하게 조회하고 집계하며, 두 테이블을 잇는 <code>JOIN</code> 조회까지 실습합니다.</p>
+</article>
+<div class="pager"><a class="prev" href="3강.html"><span class="lbl">← 이전</span><span class="ttl">3강 — 앱 설계</span></a><a class="home" href="../../Study.html"><span class="lbl">전체</span><span class="ttl">📚 강의 목록</span></a><a class="next" href="5강.html"><span class="lbl">다음 →</span><span class="ttl">5강 — 백엔드 기초</span></a></div>
+</div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search).get('q');
+  if (!q) return;
+  var tokens = q.trim().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return;
+  // 정규식 메타문자 이스케이프 후 (단어1|단어2|...) 형태로 합친다
+  function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  var re = new RegExp('(' + tokens.map(esc).join('|') + ')', 'gi');
+
+  var root = document.querySelector('article.md');
+  if (!root) return;
+  var SKIP = { SCRIPT: 1, STYLE: 1, MARK: 1 };
+  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: function (node) {
+      if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+      if (node.parentNode && SKIP[node.parentNode.nodeName]) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  // 노드를 먼저 모은 뒤 교체(순회 중 DOM을 바꾸면 walker가 꼬인다)
+  var nodes = [], n;
+  while ((n = walker.nextNode())) nodes.push(n);
+
+  var first = null;
+  nodes.forEach(function (node) {
+    var text = node.nodeValue;
+    re.lastIndex = 0;
+    if (!re.test(text)) return;
+    re.lastIndex = 0;
+    var frag = document.createDocumentFragment(), last = 0, m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+      var mk = document.createElement('mark');
+      mk.className = 'hl';
+      mk.textContent = m[0];
+      if (!first) { first = mk; mk.className = 'hl hl-first'; }
+      frag.appendChild(mk);
+      last = m.index + m[0].length;
+      if (m.index === re.lastIndex) re.lastIndex++;  // 0길이 매칭 무한루프 방지
+    }
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  });
+
+  if (first) setTimeout(function () { first.scrollIntoView({ block: 'center' }); }, 60);
+})();
+</script>
+</body>
+</html>
